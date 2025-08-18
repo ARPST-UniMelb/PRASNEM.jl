@@ -28,5 +28,5 @@ This repository contains:
         ```Julia
             using PRASNEM
             file_name = "src/Parser/output/2030-07-01_to_2031-06-30_12_regions_nem.pras"
-            PRASNEM.run_pras_study(example_file, 1000)
+            PRASNEM.run_pras_study(file_name, 100)
         ```
