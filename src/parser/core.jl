@@ -91,12 +91,14 @@ function parse_to_pras_format()
     # ---- CREATE PRAS FILE ----
 
     regions = createRegions(load_input_file, units, regions_selected, scenarios, start_dt, end_dt)
-    gens, gen_regions = createGenerators(generator_input_file, timestep_generator_input_file, units, regions_selected, start_dt, end_dt; 
+    gens, gen_region_attribution = createGenerators(generator_input_file, timestep_generator_input_file, units, regions_selected, start_dt, end_dt; 
         scenarios=scenarios, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded)
-    # stors = 
-    # genstors = 
+    # TODO: Develop these functions
+    # stors, stors_region_attribution = createStorages(storages_input_file, units, regions_selected, start_dt, end_dt; 
+    #     scenarios=scenarios, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded)
+    # genstors, genstors_region_attribution = createGeneratorStorages(generatorstorage_inflows_input_file, units, regions_selected, start_dt, end_dt; 
+    #     scenarios=scenarios, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded)
 
-    
     if length(regions_selected) == 0
         # If copperplate model is desired
         
@@ -104,15 +106,15 @@ function parse_to_pras_format()
         sys = SystemModel(gens, stors, genstors, start_dt:units.T(units.L):end_dt, regions.load[1, :])
     else
         
-        lines, interfaces, line_interface_assignment = createLinesInterfaces(lines_input_file, units, regions_selected)
+        lines, interfaces, line_interface_attribution = createLinesInterfaces(lines_input_file, units, regions_selected)
 
         # TODO: Update the SystemModel function here
         sys = SystemModel(
                     regions, interfaces,
-                    gens, gen_regions, 
+                    gens, gen_region_attribution, 
                     stors, stor_regions,
                     genstors, genstor_regions,
-                    lines, line_interface_assignment,
+                    lines, line_interface_attribution,
                     start_dt:units.T(units.L):end_dt # Timestamps
                     )
 
