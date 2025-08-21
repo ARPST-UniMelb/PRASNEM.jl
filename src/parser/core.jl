@@ -1,3 +1,6 @@
+# TODO
+#     - createGenerators:
+#           - Update to select the correct capacity column from the generator file
 
 
 include("./filterSortTimestepData.jl")
@@ -10,10 +13,13 @@ function parse_to_pras_format()
     # ---- CHANGE INPUTS HERE ----
 
     scenarios = [2]  # 1 is progressive change, 2 is step change, 3 is green hydrogen exports
-    dem_ids = [1,2,3,4,5,6,7,8,9,10,11,12] # can remove regions if desired
     gen_ids = [92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123] #can remove timestep generators if desired
-    regions_selected = collect(1:12) # can just select a subset or leave empty for copperplate
+    regions_selected = collect(1:12) # can select a subset or set to empty for copperplate []
     
+    # Select generator technologies to exclude (to do studies with selected generators off)
+    gentech_excluded = [] # can exclude a subset or set to empty for all [] - works for fuel, tech or both
+    alias_excluded = [] # can select a subset or set to empty for all []
+
     # Only dates in data are FY25-26, FY30-31, FY35-36, FY40-41 and FY50-51
     start_date = "2030-07-01 00:00:00" #change as needed
     end_date = "2031-06-30 23:00:00" #change as needed
@@ -29,7 +35,6 @@ function parse_to_pras_format()
         P = MW, # Power Unit
         E = MWh # Energy Unit
     )
-
 
 
     # Hydro inflow inputs
@@ -65,7 +70,7 @@ function parse_to_pras_format()
     generatorstorage_inflows_output_filename = "calculated_hydro_inflow.csv"
     #interfaces_input_filename = "Interfaces.csv"
     lines_input_filename = "Line.csv"
-    hdf5_output_filename = string(Date(start_dt), "_to_", Date(end_dt), "_", number_of_regions, "_regions_nem.pras")
+    hdf5_output_filename = string(Date(start_dt), "_to_", Date(end_dt), "_", prod(string.(regions_selected)), "_regions_nem.pras")
 
     # Define input and output full file paths
     load_input_file = joinpath(input_folder, load_input_filename)
@@ -76,7 +81,7 @@ function parse_to_pras_format()
     storages_input_file = joinpath(input_folder, storages_input_filename)
     generatorstorage_inflows_input_file = joinpath(input_folder, generatorstorage_inflows_input_filename)
     generatorstorage_inflows_output_file = joinpath(output_folder, "temp", generatorstorage_inflows_output_filename)
-    interfaces_input_file = joinpath(input_folder, interfaces_input_filename)
+    #interfaces_input_file = joinpath(input_folder, interfaces_input_filename)
     lines_input_file = joinpath(input_folder, lines_input_filename)
     hdf5_filepath = joinpath(output_folder, hdf5_output_filename)
 
@@ -86,7 +91,8 @@ function parse_to_pras_format()
     # ---- CREATE PRAS FILE ----
 
     regions = createRegions(load_input_file, units, regions_selected, scenarios, start_dt, end_dt)
-    gens = createGenerators(generator_input_file, timestep_generator_input_file, units, regions_selected)
+    gens, gen_regions = createGenerators(generator_input_file, timestep_generator_input_file, units, regions_selected, start_dt, end_dt; 
+        scenarios=scenarios, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded)
     # stors = 
     # genstors = 
 
