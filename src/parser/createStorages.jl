@@ -23,11 +23,13 @@ function createStorages(storages_input_file, units, regions_selected;
     if "MTTR" in names(stor_data)
         stor_data.MTTR = coalesce.(stor_data.MTTR, 1.0) # Replace missing MTTR with 1.0
     else
+        println("No MTTR column found in storage data. Setting MTTR to 1.0 for all storages.")
         stor_data.MTTR = fill(1.0, nrow(stor_data)) # If no MTTR column, set to 1.0
     end
     if "FOR" in names(stor_data)
         stor_data.FOR = coalesce.(stor_data.FOR, 0.0) # Replace missing FOR with 0.0
     else
+        println("No FOR column found in storage data. Setting FOR to 0.0 for all storages.")
         stor_data.FOR = fill(0.0, nrow(stor_data)) # If no FOR column, set to 0.0
     end
     stor_data.repairrate .= 1 ./ stor_data.MTTR

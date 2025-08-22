@@ -30,20 +30,23 @@ function createGenerators(generator_input_file, timestep_generator_input_file, u
     if "MTTR" in names(gen_info)
         gen_info.MTTR = coalesce.(gen_info.MTTR, 1.0) # Replace missing MTTR with 1.0
     else
+        println("No MTTR column found in generator data. Setting MTTR to 1.0 for all generators.")
         gen_info.MTTR = fill(1.0, nrow(gen_info)) # If no MTTR column, set to 1.0
     end
     if "FOR" in names(gen_info)
         gen_info.FOR = coalesce.(gen_info.FOR, 0.0) # Replace missing FOR with 0.0
     else
+        println("No FOR column found in generator data. Setting FOR to 0.0 for all generators.")
         gen_info.FOR = fill(0.0, nrow(gen_info)) # If no FOR column, set to 0.0
     end
     gen_info.repairrate .= 1 ./ gen_info.MTTR
     gen_info.failurerate .= gen_info.FOR ./ (gen_info.MTTR .* (1 .- gen_info.FOR))
 
     # Get the timeseries only for those generators for the relevant time
-    filter_timestep_generator = FilterSortTimestepData(timestep_generator_input_file)
-    filtered_timestep_generator = execute(filter_timestep_generator; scenarios=scenarios, gen_ids=gen_info.id[:], start_dt=start_dt, end_dt=end_dt)
+    data = CSV.read(timestep_generator_input_file, DataFrame)
+    filtered_timestep_generator = filterSortTimeseriesData(data, units, start_dt, end_dt, 2, "gen_id", gen_info.id[:])
 
+    # TODO: Get the time-varying n
     
     # Convert the timeseries data into the PRAS format
     gens_cap = zeros(Int, length(gen_info.id), units.N)

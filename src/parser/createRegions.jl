@@ -2,8 +2,11 @@ function createRegions(load_input_file, units, region_names::Union{Vector{Int}, 
 
 
     # Read and filter the timestep load file
-    filter_timestep_load = FilterSortTimestepData(load_input_file)
-    df_filtered = execute(filter_timestep_load; scenarios=scenarios, dem_ids=collect(region_names), start_dt=start_dt, end_dt=end_dt)
+    data = CSV.read(load_input_file, DataFrame)
+    #data = CSV.read("src/sample_data/nem12/schedule-24h/Generator_n_sched.csv", DataFrame)
+    data.date = DateTime.(data.date, dateformat"yyyy-mm-dd HH:MM:SS")
+    #filterSortTimeseriesData(data, units, start_dt, end_dt, 2, "gen_id")
+    df_filtered = filterSortTimeseriesData(data, units, start_dt, end_dt, 2, "dem_id", collect(region_names))
 
     number_of_regions = length(region_names)
 
