@@ -98,8 +98,8 @@ function parse_to_pras_format()
     regions = createRegions(load_input_file, units, regions_selected, scenarios, start_dt, end_dt)
     gens, gen_region_attribution = createGenerators(generator_input_file, timestep_generator_input_file, units, regions_selected, start_dt, end_dt; 
         scenarios=scenarios, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded)
-    stors, stors_region_attribution = createStorages(storages_input_file, units, regions_selected, start_dt, end_dt; 
-        scenarios=scenarios, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded)
+    stors, stors_region_attribution = createStorages(storages_input_file, units, regions_selected; 
+        gentech_excluded=gentech_excluded, alias_excluded=alias_excluded)
     
     # TODO: Develop these functions
     # 
