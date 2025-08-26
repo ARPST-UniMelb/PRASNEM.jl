@@ -92,7 +92,7 @@ function parse_to_pras_format()
     println("Excluded tech/fuel: ", if isempty(gentech_excluded) "None" else gentech_excluded end)
     println("Excluded aliases: ", if isempty(alias_excluded) "None" else alias_excluded end)
 
-    regions = createRegions(load_input_file, units, regions_selected, scenarios, start_dt, end_dt)
+    regions = createRegions(timeseries_folder, units, regions_selected, scenarios, start_dt, end_dt)
     gens, gen_region_attribution = createGenerators(generator_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
         scenarios=scenarios, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded)
     stors, stors_region_attribution = createStorages(storages_input_file, generator_input_file, units, regions_selected; 
