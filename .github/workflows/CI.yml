@@ -45,10 +45,7 @@ jobs:
         with:
           version: '1.11'
       - name: Add private package PISP
-        run: |
-          using Pkg
-          Pkg.add(url="https://x-access-token:${{ secrets.PISP_PAT }}@github.com/ARPST-UniMelb/PISP.jl.git")
-        shell: julia
+        run: julia -e 'using Pkg; Pkg.add(url="https://x-access-token:${{ secrets.PISP_PAT }}@github.com/ARPST-UniMelb/PISP.jl.git")'
       - uses: actions/checkout@v5
       - uses: julia-actions/setup-julia@v2
         with:
