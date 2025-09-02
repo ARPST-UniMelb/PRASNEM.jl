@@ -17,6 +17,8 @@ function parse_to_pras_format()
     # Select generator technologies to exclude (to do studies with selected generators off)
     gentech_excluded = [] # can exclude a subset or set to empty for all [] - works for fuel, tech or both
     alias_excluded = [] # can select a subset or set to empty for all []
+    investment_filter = [0] # only include assets that are not selected for investment 
+    active_filter = [1] # only include active assets
 
     # Only dates in data are FY25-26, FY30-31, FY35-36, FY40-41 and FY50-51
     start_date = "2025-01-07 00:00:00" #change as needed
@@ -34,7 +36,6 @@ function parse_to_pras_format()
         P = MW, # Power Unit
         E = MWh # Energy Unit
     )
-
 
     # Hydro inflow inputs
     hydro_reference_year = "Average"
@@ -72,8 +73,8 @@ function parse_to_pras_format()
     hdf5_output_filename = string(Date(start_dt), "_to_", Date(end_dt), "_", prod(string.(regions_selected)), "_regions_nem.pras")
 
     # Define input and output full file paths
-    load_input_file = joinpath(input_folder, folder_name_timeseries, load_input_filename)
-    load_output_file = joinpath(output_folder, "temp", load_output_filename)
+    #load_input_file = joinpath(input_folder, folder_name_timeseries, load_input_filename)
+    #load_output_file = joinpath(output_folder, "temp", load_output_filename)
     generator_input_file = joinpath(input_folder, generator_input_filename)
     timeseries_folder = joinpath(input_folder, folder_name_timeseries)
     storages_input_file = joinpath(input_folder, storages_input_filename)
@@ -96,9 +97,9 @@ function parse_to_pras_format()
 
     regions = createRegions(timeseries_folder, units, regions_selected, scenario, start_dt, end_dt)
     gens, gen_region_attribution = createGenerators(generator_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
-        scenarios=scenario, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded)
-    stors, stors_region_attribution = createStorages(storages_input_file, timeseries_folder, units, regions_selected; 
-        scenarios=scenario, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded)
+        scenario=scenario, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded, investment_filter=investment_filter, active_filter=active_filter)
+    stors, stors_region_attribution = createStorages(storages_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
+        scenario=scenario, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded, investment_filter=investment_filter, active_filter=active_filter)
 
 
     # TODO: Develop these functions

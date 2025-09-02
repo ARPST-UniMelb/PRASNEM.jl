@@ -1,5 +1,5 @@
-function createStorages(storages_input_file, timeseries_folder, units, regions_selected; 
-    scenarios=[2], gentech_excluded=[], alias_excluded=[], investment_filter=[0], active_filter=[1])
+function createStorages(storages_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
+    scenario=2, gentech_excluded=[], alias_excluded=[], investment_filter=[0], active_filter=[1])
 
 
     # ================================ Static data =========================================
@@ -53,7 +53,7 @@ function createStorages(storages_input_file, timeseries_folder, units, regions_s
     timeseries_file_n = joinpath(timeseries_folder, "ESS_n_sched.csv")
     n = CSV.read(timeseries_file_n, DataFrame)
     n.date = DateTime.(n.date, dateformat"yyyy-mm-dd HH:MM:SS")
-    timeseries_n = PISP.filterSortTimeseriesData(n, units, start_dt, end_dt, scenario, "ess_id", stor_data.id[:])
+    timeseries_n = PISP.filterSortTimeseriesData(n, units, start_dt, end_dt, stor_data, "n", scenario, "ess_id", stor_data.id[:])
 
     # Update the maximum n in the stor_data dataframe
     timeseries_n_ess_ids = parse.(Int, names(select(timeseries_n, Not(:date))))
@@ -66,21 +66,21 @@ function createStorages(storages_input_file, timeseries_folder, units, regions_s
     timeseries_file_pmax = joinpath(timeseries_folder, "ESS_pmax_sched.csv")
     pmax = CSV.read(timeseries_file_pmax, DataFrame)
     pmax.date = DateTime.(pmax.date, dateformat"yyyy-mm-dd HH:MM:SS")
-    timeseries_pmax = PISP.filterSortTimeseriesData(pmax, units, start_dt, end_dt, scenario, "ess_id", stor_data.id[:])
+    timeseries_pmax = PISP.filterSortTimeseriesData(pmax, units, start_dt, end_dt, stor_data, "pmax", scenario, "ess_id", stor_data.id[:])
     timeseries_pmax_ess_ids = parse.(Int, names(select(timeseries_pmax, Not(:date))))
 
     # Get the timeseries data of the storage capacities - CHARGE
     timeseries_file_lmax = joinpath(timeseries_folder, "ESS_lmax_sched.csv")
     lmax = CSV.read(timeseries_file_lmax, DataFrame)
     lmax.date = DateTime.(lmax.date, dateformat"yyyy-mm-dd HH:MM:SS")
-    timeseries_lmax = PISP.filterSortTimeseriesData(lmax, units, start_dt, end_dt, scenario, "ess_id", stor_data.id[:])
+    timeseries_lmax = PISP.filterSortTimeseriesData(lmax, units, start_dt, end_dt, stor_data, "lmax", scenario, "ess_id", stor_data.id[:])
     timeseries_lmax_ess_ids = parse.(Int, names(select(timeseries_lmax, Not(:date))))
 
     # Get the timeseries data of the storage capacities - ENERGY
     timeseries_file_emax = joinpath(timeseries_folder, "ESS_emax_sched.csv")
     emax = CSV.read(timeseries_file_emax, DataFrame)
     emax.date = DateTime.(emax.date, dateformat"yyyy-mm-dd HH:MM:SS")
-    timeseries_emax = PISP.filterSortTimeseriesData(emax, units, start_dt, end_dt, scenario, "ess_id", stor_data.id[:])
+    timeseries_emax = PISP.filterSortTimeseriesData(emax, units, start_dt, end_dt, stor_data, "emax", scenario, "ess_id", stor_data.id[:])
     timeseries_emax_ess_ids = parse.(Int, names(select(timeseries_emax, Not(:date))))
 
     # =================================== Create PRAS Object ==================================================
@@ -149,7 +149,7 @@ function createStorages(storages_input_file, timeseries_folder, units, regions_s
         if (row.id in timeseries_n_ess_ids)
             # Check if the number of units changes over time
             if (minimum(timeseries_n[!, "$(row.id)"]) < row.n)
-                println("Note: The number of units for generator id $(row.id) changes over time. Adjusting the availability accordingly.")
+                println("Note: The number of units for storage id $(row.id) changes over time. Adjusting the availability accordingly.")
                 # Now iterate through the different unique levels of n
                 unique_n = unique(timeseries_n[!, "$(row.id)"])
                 sort!(unique_n)

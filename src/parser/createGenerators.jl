@@ -46,7 +46,7 @@ function createGenerators(generator_input_file, timeseries_folder, units, region
     timeseries_file_n = joinpath(timeseries_folder, "Generator_n_sched.csv")
     n = CSV.read(timeseries_file_n, DataFrame)
     n.date = DateTime.(n.date, dateformat"yyyy-mm-dd HH:MM:SS")
-    timeseries_n = PISP.filterSortTimeseriesData(n, units, start_dt, end_dt, scenario, "gen_id", gen_info.id[:])
+    timeseries_n = PISP.filterSortTimeseriesData(n, units, start_dt, end_dt, gen_info, "n", scenario, "gen_id", gen_info.id[:])
     
     # Update the maximum n in the gen_info dataframe
     timeseries_n_gen_ids = parse.(Int, names(select(timeseries_n, Not(:date))))
@@ -59,7 +59,7 @@ function createGenerators(generator_input_file, timeseries_folder, units, region
     timeseries_file_pmax = joinpath(timeseries_folder, "Generator_pmax_sched.csv")
     pmax = CSV.read(timeseries_file_pmax, DataFrame)
     pmax.date = DateTime.(pmax.date, dateformat"yyyy-mm-dd HH:MM:SS")
-    timeseries_pmax = PISP.filterSortTimeseriesData(pmax, units, start_dt, end_dt, scenario, "gen_id", gen_info.id[:])
+    timeseries_pmax = PISP.filterSortTimeseriesData(pmax, units, start_dt, end_dt, gen_info, "pmax", scenario, "gen_id", gen_info.id[:])
     timeseries_pmax_gen_ids = parse.(Int, names(select(timeseries_pmax, Not(:date))))
 
     # Convert the timeseries data into the PRAS format
