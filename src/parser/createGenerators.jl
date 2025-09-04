@@ -1,11 +1,15 @@
-function createGenerators(generator_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
-        scenarios=[2], gentech_excluded=[], alias_excluded=[], investment_filter=[0], active_filter=[1])
+function createGenerators(generators_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
+        scenario=2, gentech_excluded=[], alias_excluded=[], investment_filter=[0], active_filter=[1], get_only_hydro=false)
 
     # Read in all the metadata of the generators
-    gen_info = CSV.read(generator_input_file, DataFrame)
+    gen_info = CSV.read(generators_input_file, DataFrame)
 
     # Filter all the hydro generators => They are genstor objects
-    filter!(row -> !(row[:fuel] == "Hydro"), gen_info)
+    if get_only_hydro
+        filter!(row -> row[:fuel] == "Hydro", gen_info)
+    else
+        filter!(row -> !(row[:fuel] == "Hydro"), gen_info)
+    end
 
     # Filter the data
     filter!(row -> row.investment in investment_filter, gen_info)
@@ -46,7 +50,7 @@ function createGenerators(generator_input_file, timeseries_folder, units, region
     timeseries_file_n = joinpath(timeseries_folder, "Generator_n_sched.csv")
     n = CSV.read(timeseries_file_n, DataFrame)
     n.date = DateTime.(n.date, dateformat"yyyy-mm-dd HH:MM:SS")
-    timeseries_n = PISP.filterSortTimeseriesData(n, units, start_dt, end_dt, 2, "gen_id", gen_info.id[:])
+    timeseries_n = PISP.filterSortTimeseriesData(n, units, start_dt, end_dt, gen_info, "n", scenario, "gen_id", gen_info.id[:])
     
     # Update the maximum n in the gen_info dataframe
     timeseries_n_gen_ids = parse.(Int, names(select(timeseries_n, Not(:date))))
@@ -59,7 +63,7 @@ function createGenerators(generator_input_file, timeseries_folder, units, region
     timeseries_file_pmax = joinpath(timeseries_folder, "Generator_pmax_sched.csv")
     pmax = CSV.read(timeseries_file_pmax, DataFrame)
     pmax.date = DateTime.(pmax.date, dateformat"yyyy-mm-dd HH:MM:SS")
-    timeseries_pmax = PISP.filterSortTimeseriesData(pmax, units, start_dt, end_dt, 2, "gen_id", gen_info.id[:])
+    timeseries_pmax = PISP.filterSortTimeseriesData(pmax, units, start_dt, end_dt, gen_info, "pmax", scenario, "gen_id", gen_info.id[:])
     timeseries_pmax_gen_ids = parse.(Int, names(select(timeseries_pmax, Not(:date))))
 
     # Convert the timeseries data into the PRAS format
@@ -111,13 +115,14 @@ function createGenerators(generator_input_file, timeseries_folder, units, region
         end
     end
 
+    # ====================== Gen-Region Attribution ===========================
     # Calculate the gen_region_attribution
-    if regions_selected !== []
+    if regions_selected == []
         # If copperplate model is desired, all generators are in the same region
-        gen_region_attribution = [1:nrow(gen_info)]
+        gen_region_attribution = [1:Ngens]
     else
-        gen_groups = groupby(gen_info[!,[:bus_id, :id_ascending]], :bus_id)
-        gen_region_attribution = [first(group.id_ascending):last(group.id_ascending) for group in gen_groups]
+        all_bus_ids = vcat([fill(row.bus_id, row.n) for row in eachrow(gen_info)]...)
+        gen_region_attribution = get_unit_region_assignment(regions_selected, all_bus_ids)
     end
 
     return Generators{units.N, units.L, units.T, units.P}(
