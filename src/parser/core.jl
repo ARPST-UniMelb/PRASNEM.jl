@@ -37,7 +37,17 @@ function parse_to_pras_format()
         E = MWh # Energy Unit
     )
 
-    # Hydro inflow inputs
+    # Hydro default parameters
+    default_hydro_values = Dict{String, Any}()
+    default_hydro_values["run_of_river_discharge_time"] = 0 # This is the amount of timesteps that the run-of-river can discharge at full capacity (e.g. 0 = no storage)
+    default_hydro_values["reservoir_discharge_time"] = 24 * 30 # This is the amount of timesteps that the reservoir can discharge at full capacity (e.g. 24*30 = 30 days at hourly resolution)
+    default_hydro_values["run_of_river_discharge_efficiency"] = 1.0
+    default_hydro_values["run_of_river_carryover_efficiency"] = 1.0 # Irrelevant when discharge time is zero anyway
+    default_hydro_values["reservoir_discharge_efficiency"] = 1.0
+    default_hydro_values["reservoir_carryover_efficiency"] = 1.0
+    default_hydro_values["default_static_inflow"] = 0.0 # As a factor of the grid injection capacity (e.g. 0.5 means that the inflow is 50% of the grid injection capacity) - this mostly applies to PHSP
+
+
     hydro_reference_year = "Average"
     generator_shares_by_location = Dict(
         "Snowy" => Dict(
@@ -57,33 +67,19 @@ function parse_to_pras_format()
 
     # Define the path to the input and output folder (CAN CHANGE AS NEEDED)
     input_folder = joinpath(current_working_directory, "src", "sample_data", "nem12")
-    output_folder = joinpath(current_working_directory, "src", "sample_data", "output", "testing")
 
     # Define input and output file names (CAN CHANGE AS NEEDED, JUST ENSURE THEY ARE THE SAME FORMAT)
-    load_input_filename =  "Demand_load_sched.csv"
-    load_output_filename = "filtered_timestep_load.csv"
     generator_input_filename = "Generator.csv"
-    timestep_generator_input_filename = "Generator_pmax_sched.csv"
-    timestep_generator_output_filename = "filtered_timestep_generator.csv"
     storages_input_filename = "ESS.csv"
-    generatorstorage_inflows_input_filename = "Hydro_inflow.csv"
-    generatorstorage_inflows_output_filename = "calculated_hydro_inflow.csv"
-    #interfaces_input_filename = "Interfaces.csv"
     lines_input_filename = "Line.csv"
     hdf5_output_filename = string(Date(start_dt), "_to_", Date(end_dt), "_", prod(string.(regions_selected)), "_regions_nem.pras")
 
     # Define input and output full file paths
-    #load_input_file = joinpath(input_folder, folder_name_timeseries, load_input_filename)
-    #load_output_file = joinpath(output_folder, "temp", load_output_filename)
     generators_input_file = joinpath(input_folder, generator_input_filename)
     timeseries_folder = joinpath(input_folder, folder_name_timeseries)
     storages_input_file = joinpath(input_folder, storages_input_filename)
-    generatorstorage_inflows_input_file = joinpath(input_folder, generatorstorage_inflows_input_filename)
-    generatorstorage_inflows_output_file = joinpath(output_folder, "temp", generatorstorage_inflows_output_filename)
-    #interfaces_input_file = joinpath(input_folder, interfaces_input_filename)
     lines_input_file = joinpath(input_folder, lines_input_filename)
     hdf5_filepath = joinpath(output_folder, hdf5_output_filename)
-
 
 
     # ---- CREATE PRAS FILE ----
@@ -100,15 +96,14 @@ function parse_to_pras_format()
         scenario=scenario, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded, investment_filter=investment_filter, active_filter=active_filter)
     stors, stors_region_attribution = createStorages(storages_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
         scenario=scenario, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded, investment_filter=investment_filter, active_filter=active_filter)
-    genstors, genstor_region_attribution = createGenStorages(storages_input_file, generator_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
-        scenario=scenario, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded, investment_filter=investment_filter, active_filter=active_filter)
+    genstors, genstors_region_attribution = createGenStorages(storages_input_file, generators_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
+        scenario=scenario, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded, investment_filter=investment_filter, active_filter=active_filter, default_hydro_values=default_hydro_values)
 
     if length(regions_selected) == 0
         # If copperplate model is desired
-        
-        #TODO: Add the SystemModel creation function here
         sys = SystemModel(gens, stors, genstors, start_dt:units.T(units.L):end_dt, regions.load[1, :])
-    else
+    else 
+        # Else, get the lines and interfaces for the relevant regions
         #TODO: Update the LinesInterfaces function
         lines, interfaces, line_interface_attribution = createLinesInterfaces(lines_input_file, units, regions_selected)
 
@@ -116,8 +111,8 @@ function parse_to_pras_format()
         sys = SystemModel(
                     regions, interfaces,
                     gens, gen_region_attribution, 
-                    stors, stor_regions,
-                    genstors, genstor_regions,
+                    stors, stors_region_attribution,
+                    genstors, genstors_region_attribution,
                     lines, line_interface_attribution,
                     start_dt:units.T(units.L):end_dt # Timestamps
                     )

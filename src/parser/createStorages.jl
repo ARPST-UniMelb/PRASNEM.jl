@@ -1,12 +1,18 @@
 function createStorages(storages_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
-    scenario=2, gentech_excluded=[], alias_excluded=[], investment_filter=[0], active_filter=[1])
+    scenario=2, gentech_excluded=[], alias_excluded=[], investment_filter=[0], active_filter=[1], get_only_hydro=false)
 
 
     # ================================ Static data =========================================
     stor_data = CSV.read(storages_input_file, DataFrame)
 
+
     # Filter only the BESS objects (-> Pumped storage is modelled as genstor)
-    filter!(row -> row.tech == "BESS", stor_data)
+    if get_only_hydro
+        # if option is selected, return only the hydro-storage (for GenStor)
+        filter!(row -> row.tech == "PS", stor_data)
+    else
+        filter!(row -> !(row.tech == "PS"), stor_data)
+    end
 
     # Filter the selected regions
     if !isempty(regions_selected)
@@ -166,7 +172,7 @@ function createStorages(storages_input_file, timeseries_folder, units, regions_s
     end
 
     # Calculate the gen_region_attribution
-    if regions_selected !== []
+    if regions_selected == []
         # If copperplate model is desired, all generators are in the same region
         stors_region_attribution = [1:nrow(stor_data)]
     else
