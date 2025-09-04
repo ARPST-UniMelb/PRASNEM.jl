@@ -27,8 +27,10 @@ function createLinesInterfaces(lines_input_file, timeseries_folder, units, regio
     filter!(row -> !(row[:alias] in alias_excluded), line_data)
     filter!(row -> !(row[:tech] in gentech_excluded), line_data)
 
-    # Sort by 'from' and 'to' columns
-    sort!(line_data, [:bus_a_id, :bus_b_id])
+    # Sort by 'from' and 'to' columns (create helper columns first to sort by lowest to highest bus id!)
+    line_data[!, :lower_bus_id] = min.(line_data.bus_a_id, line_data.bus_b_id)
+    line_data[!, :higher_bus_id] = max.(line_data.bus_a_id, line_data.bus_b_id)
+    sort!(line_data, [:lower_bus_id, :higher_bus_id])
 
     # For the line-interface assignment, create a new ID with the new sorting
     line_data.id_ascending .= 1:nrow(line_data)
@@ -71,8 +73,8 @@ function createLinesInterfaces(lines_input_file, timeseries_folder, units, regio
     line_failure_rate = zeros(Float64, N_lines, units.N)
     line_repair_rate = zeros(Float64, N_lines, units.N)
     # helper vectors
-    line_bus_a = zeros(Int, N_lines)
-    line_bus_b = zeros(Int, N_lines)
+    line_bus_from_final = zeros(Int, N_lines)
+    line_bus_to_final = zeros(Int, N_lines)
 
     # Iterate through each row
     line_index_counter = 1
@@ -82,31 +84,57 @@ function createLinesInterfaces(lines_input_file, timeseries_folder, units, regio
             continue
         end
 
-        
+        # Go through each line 
         for i in 1:row.n
-            # First the details of this line
+            # These are always the same - independent of direction
             line_names[line_index_counter] = "$(row.id)_" * string(i)
             line_categories[line_index_counter] = row.tech
-            line_bus_a[line_index_counter] = row.bus_a_id
-            line_bus_b[line_index_counter] = row.bus_b_id
-
-            # Then add the time-varying data
-            if (row.id in timeseries_tmax_lin_ids)
-                # If there is time-varying data available
-                cap_line_forward[line_index_counter, :] = round.(Int,timeseries_tmax[!, string(row.id)][:])
-            else
-                cap_line_forward[line_index_counter, :] = fill(round(Int, row[:tmax]), units.N)
-            end
-
-            if (row.id in timeseries_tmin_lin_ids)
-                # If there is time-varying data available
-                cap_line_backward[line_index_counter, :] = round.(Int,timeseries_tmin[!, string(row.id)][:])
-            else
-                cap_line_backward[line_index_counter, :] = fill(round(Int, row[:tmin]), units.N)
-            end
-
             line_failure_rate[line_index_counter, :] .= row.failure_rate
             line_repair_rate[line_index_counter, :] .= row.repair_rate
+
+            # Check if already in correct direction (from lower to higher bus id)
+            if row.lower_bus_id == row.bus_a_id
+                # First the details of this line
+                line_bus_from_final[line_index_counter] = row.bus_a_id
+                line_bus_to_final[line_index_counter] = row.bus_b_id
+
+                # Then add the time-varying data
+                if (row.id in timeseries_tmax_lin_ids)
+                    # If there is time-varying data available
+                    cap_line_forward[line_index_counter, :] = round.(Int,timeseries_tmax[!, string(row.id)][:])
+                else
+                    cap_line_forward[line_index_counter, :] = fill(round(Int, row[:tmax]), units.N)
+                end
+
+                if (row.id in timeseries_tmin_lin_ids)
+                    # If there is time-varying data available
+                    cap_line_backward[line_index_counter, :] = round.(Int,timeseries_tmin[!, string(row.id)][:])
+                else
+                    cap_line_backward[line_index_counter, :] = fill(round(Int, row[:tmin]), units.N)
+                end
+        
+            else # if lower_bus_id is bus_b_id
+                
+                # First the details of this line (now swapped!!)
+                line_bus_from_final[line_index_counter] = row.bus_b_id
+                line_bus_to_final[line_index_counter] = row.bus_a_id
+
+                # Then add the time-varying data (swap forward and backward)
+                if (row.id in timeseries_tmax_lin_ids)
+                    # If there is time-varying data available
+                    cap_line_backward[line_index_counter, :] = round.(Int,timeseries_tmax[!, string(row.id)][:])
+                else
+                    cap_line_backward[line_index_counter, :] = fill(round(Int, row[:tmax]), units.N)
+                end
+
+                if (row.id in timeseries_tmin_lin_ids)
+                    # If there is time-varying data available
+                    cap_line_forward[line_index_counter, :] = round.(Int,timeseries_tmin[!, string(row.id)][:])
+                else
+                    cap_line_forward[line_index_counter, :] = fill(round(Int, row[:tmin]), units.N)
+                end
+
+            end # end of switch if lower_bus_id
 
             line_index_counter += 1
         end
@@ -115,18 +143,18 @@ function createLinesInterfaces(lines_input_file, timeseries_folder, units, regio
 
     # ========================== Interfaces ===============================
     # Now aggregate the lines to get the interfaces
-    line_details = DataFrame(id_ascending = 1:N_lines , idlong = line_names, bus_a_id = line_bus_a, bus_b_id = line_bus_b)
-    line_groups = groupby(line_details, [:bus_a_id, :bus_b_id])
+    line_details = DataFrame(id_ascending = 1:N_lines , idlong = line_names, bus_from = line_bus_from_final, bus_to = line_bus_to_final)
+    line_groups = groupby(line_details, [:bus_from, :bus_to])
 
     N_interfaces = length(line_groups)
-    interface_bus_a = zeros(Int, N_interfaces)
-    interface_bus_b = zeros(Int, N_interfaces)
+    interface_bus_from = zeros(Int, N_interfaces)
+    interface_bus_to = zeros(Int, N_interfaces)
     interface_cap_forward = zeros(Int, N_interfaces, units.N)
     interface_cap_backward = zeros(Int, N_interfaces, units.N)
     for (i, group) in enumerate(line_groups)
         #println("Creating interface between region $(first(group.bus_a_id)) and $(first(group.bus_b_id)) with $(nrow(group)) lines.")
-        interface_bus_a[i] = first(group.bus_a_id)
-        interface_bus_b[i] = first(group.bus_b_id)
+        interface_bus_from[i] = first(group.bus_from)
+        interface_bus_to[i] = first(group.bus_to)
         idx_lines = group.id_ascending
         interface_cap_forward[i, :] = sum(cap_line_forward[idx_lines, :], dims=1)
         interface_cap_backward[i, :] = sum(cap_line_backward[idx_lines, :], dims=1)
@@ -145,7 +173,7 @@ function createLinesInterfaces(lines_input_file, timeseries_folder, units, regio
         line_failure_rate, # failure rate (λ) for each line and timestep
         line_repair_rate # repair rate (μ) for each line and timestep
     ), Interfaces{units.N,units.P}( # timesteps, units
-        interface_bus_a, interface_bus_b, # from, to
+        interface_bus_from, interface_bus_to, # from, to
         interface_cap_forward, interface_cap_backward
     ), line_interface_assignment
 end

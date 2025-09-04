@@ -110,7 +110,7 @@ function parse_to_pras_format()
                     )
     end 
 
-    savemodel(sys, outfile=hdf5_filepath)
+    savemodel(sys, hdf5_filepath)
     println("PRAS file created at: ", hdf5_filepath)
 
     return sys
