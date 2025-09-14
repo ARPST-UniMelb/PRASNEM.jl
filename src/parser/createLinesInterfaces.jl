@@ -36,20 +36,20 @@ function createLinesInterfaces(lines_input_file, timeseries_folder, units, regio
     line_data.id_ascending .= 1:nrow(line_data)
 
     # Calculate the failure and repair rates
-    if "MTTR" in names(line_data)
-        line_data.MTTR = coalesce.(line_data.MTTR, 1.0) # Replace missing MTTR with 1.0
+    if "mttrfull" in names(line_data)
+        line_data.mttrfull = coalesce.(line_data.mttrfull, 1.0) # Replace missing mttrfull with 1.0
     else
-        println("No MTTR column found in line data. Setting MTTR to 1.0 for all lines.")
-        line_data.MTTR = fill(1.0, nrow(line_data)) # If no MTTR column, set to 1.0
+        println("No mttrfull column found in line data. Setting mttrfull to 1.0 for all lines.")
+        line_data.mttrfull = fill(1.0, nrow(line_data)) # If no mttrfull column, set to 1.0
     end
-    if "FOR" in names(line_data)
-        line_data.FOR = coalesce.(line_data.FOR, 0.0) # Replace missing FOR with 0.0
+    if "fullout" in names(line_data)
+        line_data.fullout = coalesce.(line_data.fullout, 0.0) # Replace missing fullout with 0.0
     else
-        println("No FOR column found in line data. Setting FOR to 0.0 for all lines.")
-        line_data.FOR = fill(0.0, nrow(line_data)) # If no FOR column, set to 0.0
+        println("No fullout column found in line data. Setting fullout to 0.0 for all lines.")
+        line_data.fullout = fill(0.0, nrow(line_data)) # If no fullout column, set to 0.0
     end
-    line_data.repair_rate .= 1 ./ line_data.MTTR
-    line_data.failure_rate .= line_data.FOR ./ (line_data.MTTR .* (1 .- line_data.FOR))
+    line_data.repair_rate .= 1 ./ line_data.mttrfull
+    line_data.failure_rate .= line_data.fullout ./ (line_data.mttrfull .* (1 .- line_data.fullout))
 
     # Get the timevarying data
     timeseries_tmax_file = joinpath(timeseries_folder, "line_tmax_sched.csv")
@@ -162,7 +162,16 @@ function createLinesInterfaces(lines_input_file, timeseries_folder, units, regio
 
     # ========================== Line-Interface-Assignments ===============================
     # Create the line-interface assignment
-    line_interface_assignment = [first(group.id_ascending):last(group.id_ascending) for group in line_groups]
+    
+    # Add the interface ids to the line_details dataframe
+    line_details[!, :interface_id] = zeros(Int, N_lines)
+    for (i, group) in enumerate(line_groups)
+        idx_lines = group.id_ascending
+        line_details.interface_id[idx_lines] .= i
+    end
+    # Now calculate the line-interface assignment
+    line_interface_assignment = get_unit_region_assignment(unique(line_details.interface_id), line_details.interface_id)
+
 
 
     return Lines{units.N,units.L,units.T,units.P}(

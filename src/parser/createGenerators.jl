@@ -31,20 +31,20 @@ function createGenerators(generators_input_file, timeseries_folder, units, regio
     gen_info.id_ascending .= 1:nrow(gen_info)
 
     # Calculate the failure and repair probabilities of the generators from the FOR/MTTR (Formulas: mu = 1/MTTR and lam = FOR / (MTTR * (1 - FOR)))
-    if "MTTR" in names(gen_info)
-        gen_info.MTTR = coalesce.(gen_info.MTTR, 1.0) # Replace missing MTTR with 1.0
+    if "mttrfull" in names(gen_info)
+        gen_info.mttrfull = coalesce.(gen_info.mttrfull, 1.0) # Replace missing mttrfull with 1.0
     else
-        println("No MTTR column found in generator data. Setting MTTR to 1.0 for all generators.")
-        gen_info.MTTR = fill(1.0, nrow(gen_info)) # If no MTTR column, set to 1.0
+        println("No mttrfull column found in generator data. Setting mttrfull to 1.0 for all generators.")
+        gen_info.mttrfull = fill(1.0, nrow(gen_info)) # If no mttrfull column, set to 1.0
     end
-    if "FOR" in names(gen_info)
-        gen_info.FOR = coalesce.(gen_info.FOR, 0.0) # Replace missing FOR with 0.0
+    if "fullout" in names(gen_info)
+        gen_info.fullout = coalesce.(gen_info.fullout, 0.0) # Replace missing fullout with 0.0
     else
-        println("No FOR column found in generator data. Setting FOR to 0.0 for all generators.")
-        gen_info.FOR = fill(0.0, nrow(gen_info)) # If no FOR column, set to 0.0
+        println("No fullout column found in generator data. Setting fullout to 0.0 for all generators.")
+        gen_info.fullout = fill(0.0, nrow(gen_info)) # If no fullout column, set to 0.0
     end
-    gen_info.repairrate .= 1 ./ gen_info.MTTR
-    gen_info.failurerate .= gen_info.FOR ./ (gen_info.MTTR .* (1 .- gen_info.FOR))
+    gen_info.repairrate .= 1 ./ gen_info.mttrfull
+    gen_info.failurerate .= gen_info.fullout ./ (gen_info.mttrfull .* (1 .- gen_info.fullout))
 
     # Get the timeseries data of the n generators
     timeseries_file_n = joinpath(timeseries_folder, "Generator_n_sched.csv")
