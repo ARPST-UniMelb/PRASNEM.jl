@@ -47,6 +47,9 @@ PRASNEM.run_pras_study(file_name, 100)
 
 
 #### Further PRAS functions
+For reference, these are possible outputs from PRAS:
 ```Julia
-
+shortfalls, surplus, genavail, storage_energy, generator_storage_energy, flow = assess(
+    sys, SequentialMonteCarlo(samples=1000),
+    Shortfall(), Surplus(), GeneratorAvailability(), StorageEnergy(), GeneratorStorageEnergy(), Flow());
 ```
