@@ -28,20 +28,20 @@ function createStorages(storages_input_file, timeseries_folder, units, regions_s
     filter!(row -> row[:active] in active_filter, stor_data)
 
     # Calculate the failure and repair probabilities of the generators from the FOR/MTTR (Formulas: mu = 1/MTTR and lam = FOR / (MTTR * (1 - FOR)))
-    if "MTTR" in names(stor_data)
-        stor_data.MTTR = coalesce.(stor_data.MTTR, 1.0) # Replace missing MTTR with 1.0
+    if "mttrfull" in names(stor_data)
+        stor_data.mttrfull = coalesce.(stor_data.mttrfull, 1.0) # Replace missing mttrfull with 1.0
     else
-        println("No MTTR column found in storage data. Setting MTTR to 1.0 for all storages.")
-        stor_data.MTTR = fill(1.0, nrow(stor_data)) # If no MTTR column, set to 1.0
+        println("No mttrfull column found in storage data. Setting mttrfull to 1.0 for all storages.")
+        stor_data.mttrfull = fill(1.0, nrow(stor_data)) # If no mttrfull column, set to 1.0
     end
-    if "FOR" in names(stor_data)
-        stor_data.FOR = coalesce.(stor_data.FOR, 0.0) # Replace missing FOR with 0.0
+    if "fullout" in names(stor_data)
+        stor_data.fullout = coalesce.(stor_data.fullout, 0.0) # Replace missing fullout with 0.0
     else
-        println("No FOR column found in storage data. Setting FOR to 0.0 for all storages.")
-        stor_data.FOR = fill(0.0, nrow(stor_data)) # If no FOR column, set to 0.0
+        println("No fullout column found in storage data. Setting fullout to 0.0 for all storages.")
+        stor_data.fullout = fill(0.0, nrow(stor_data)) # If no fullout column, set to 0.0
     end
-    stor_data.repairrate .= 1 ./ stor_data.MTTR
-    stor_data.failurerate .= stor_data.FOR ./ (stor_data.MTTR .* (1 .- stor_data.FOR))
+    stor_data.repairrate .= 1 ./ stor_data.mttrfull
+    stor_data.failurerate .= stor_data.fullout ./ (stor_data.mttrfull .* (1 .- stor_data.fullout))
 
 
     # Now sort by bus_id and add new counter
