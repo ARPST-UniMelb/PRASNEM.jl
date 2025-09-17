@@ -1,6 +1,6 @@
 function createGenStorages(storages_input_file, generators_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
     scenario=2, gentech_excluded=[], alias_excluded=[], investment_filter=[0], active_filter=[1], 
-    default_hydro_values=Dict{String, Any}(), hydro_year::String="Average")
+    default_hydro_values=Dict{String, Any}())
 
 
 
@@ -45,11 +45,15 @@ function createGenStorages(storages_input_file, generators_input_file, timeserie
 
     # =====================================================
     # Now combine both dataframes
+
+    # Add a new genstor ID column to the combined data
+    gen_data[!, "id_genstor"] = gen_data.id_gen
+    stor_data[!, "id_genstor"] = stor_data.id_ess
     combined_data_detailed = vcat(gen_data, stor_data, cols=:union)
 
-    # ToDo: This needs to be changed!!!
-    if nrow(combined_data_detailed) != length(unique(combined_data_detailed.id))
-        error("There are duplicate IDs in the combined generator and storage data! Please ensure that all IDs are unique across both datasets or adjust code accordingly.")
+    # Ensure that there are no duplicate IDs in the combined data (i.e. no overlapping IDs between generators and storages)
+    if nrow(combined_data_detailed) != length(unique(combined_data_detailed.id_genstor))
+        error("There are duplicate IDs in the combined generator and storage data! Please ensure that all IDs are unique across both datasets OR adjust code in PRASNEM.jl accordingly.")
     end
 
     combined_data = DataFrame(longid=vcat(gens.names, stors.names))

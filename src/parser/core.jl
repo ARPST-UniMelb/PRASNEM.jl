@@ -7,10 +7,10 @@ include("./createLinesInterfaces.jl")
 include("./utils.jl") # this includes helper functions such as get_unit_region_assignment
 
 
-function parse_to_pras_format(start_dt::DateTime, end_dt::DateTime, input_folder, output_folder,
-    folder_name_timeseries::String;
+function create_pras_file(start_dt::DateTime, end_dt::DateTime, input_folder, output_folder,
+    timeseries_folder::String;
     regions_selected=collect(1:12), # can select a subset or set to empty for copperplate []
-    scenario::Int=2, # 1 is progressive change, 2 is step change
+    scenario::Int=2, # 1 is progressive change, 2 is step change, 3 is green hydrogen exports
     gentech_excluded=[], # can exclude a subset or set to empty for all []
     alias_excluded=[], # can select a subset or set to empty for all []
     investment_filter=[0], # only include assets that are not selected for investment
@@ -73,14 +73,36 @@ function parse_to_pras_format(start_dt::DateTime, end_dt::DateTime, input_folder
     generator_input_filename = "Generator.csv"
     storages_input_filename = "ESS.csv"
     lines_input_filename = "Line.csv"
-    hdf5_output_filename = string(Date(start_dt), "_to_", Date(end_dt), "_", prod(string.(regions_selected)), "_regions_nem.pras")
+    
+    # Create output filename
+    output_name = string(Date(start_dt), "_to_", Date(end_dt), "_s", scenario, "_")
+    if isempty(regions_selected)
+        output_name *= "copperplate"
+    else
+        output_name *= prod(string.(regions_selected)) * "_regions"
+    end
+
+    if !isempty(gentech_excluded)
+        output_name *= "_no_" * join(gentech_excluded, "_")
+    end
+
+    if !isempty(alias_excluded)
+        if !isempty(gentech_excluded)
+            output_name *= "_" 
+        else
+            output_name *= "_no_"
+        end
+        output_name *= join(alias_excluded, "_")
+    end
+
+    output_filename = string(output_name, ".pras")
 
     # Define input and output full file paths
     generators_input_file = joinpath(input_folder, generator_input_filename)
-    timeseries_folder = joinpath(input_folder, folder_name_timeseries)
+    timeseries_folder = joinpath(input_folder, timeseries_folder)
     storages_input_file = joinpath(input_folder, storages_input_filename)
     lines_input_file = joinpath(input_folder, lines_input_filename)
-    hdf5_filepath = joinpath(output_folder, hdf5_output_filename)
+    output_filepath = joinpath(output_folder, output_filename)
 
 
     # ---- CREATE PRAS FILE ----
@@ -120,8 +142,8 @@ function parse_to_pras_format(start_dt::DateTime, end_dt::DateTime, input_folder
                     )
     end 
 
-    savemodel(sys, hdf5_filepath)
-    println("PRAS file created at: ", hdf5_filepath)
+    savemodel(sys, output_filepath)
+    println("PRAS file created at: ", output_filepath)
 
     return sys
 

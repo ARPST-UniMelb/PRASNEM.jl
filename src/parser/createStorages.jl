@@ -30,6 +30,7 @@ function createStorages(storages_input_file, timeseries_folder, units, regions_s
     # Calculate the failure and repair probabilities of the generators from the FOR/MTTR (Formulas: mu = 1/MTTR and lam = FOR / (MTTR * (1 - FOR)))
     if "mttrfull" in names(stor_data)
         stor_data.mttrfull = coalesce.(stor_data.mttrfull, 1.0) # Replace missing mttrfull with 1.0
+        stor_data.mttrfull[findall(stor_data.mttrfull .== 0.0)] .= 1.0 # Replace any 0.0 mttrfull with 1.0 to avoid division by zero
     else
         println("No mttrfull column found in storage data. Setting mttrfull to 1.0 for all storages.")
         stor_data.mttrfull = fill(1.0, nrow(stor_data)) # If no mttrfull column, set to 1.0

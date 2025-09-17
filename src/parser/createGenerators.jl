@@ -33,6 +33,7 @@ function createGenerators(generators_input_file, timeseries_folder, units, regio
     # Calculate the failure and repair probabilities of the generators from the FOR/MTTR (Formulas: mu = 1/MTTR and lam = FOR / (MTTR * (1 - FOR)))
     if "mttrfull" in names(gen_info)
         gen_info.mttrfull = coalesce.(gen_info.mttrfull, 1.0) # Replace missing mttrfull with 1.0
+        gen_info.mttrfull[findall(gen_info.mttrfull .== 0.0)] .= 1.0 # Replace any 0.0 mttrfull with 1.0 to avoid division by zero
     else
         println("No mttrfull column found in generator data. Setting mttrfull to 1.0 for all generators.")
         gen_info.mttrfull = fill(1.0, nrow(gen_info)) # If no mttrfull column, set to 1.0
