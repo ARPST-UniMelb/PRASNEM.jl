@@ -1,3 +1,0 @@
-*.pras filter=lfs diff=lfs merge=lfs -text
-Demand_load_sched.csv filter=lfs diff=lfs merge=lfs -text
-Generator_pmax_sched.csv filter=lfs diff=lfs merge=lfs -text
