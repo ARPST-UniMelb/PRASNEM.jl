@@ -13,9 +13,16 @@ This repository contains:
 
 ## Getting Started
 
-Develop the package PRASNEM by running
+Install the dependency [`PISP.jl`](https://github.com/ARPST-UniMelb/PISP.jl#),
+
+```julia
+using Pkg
+Pkg.develop(path="../PISP.jl")
+```
+
+then develop the package PRASNEM by running
 ```Julia
-using Pkg; Pkg.develop("./PRASNEM")
+using Pkg; Pkg.develop(path="./PRASNEM")
 ```
 
 #### Creating a new PRAS case file
@@ -49,7 +56,7 @@ Or if just PRAS should be used:
 ```Julia
 using PRAS
 
-file_name = "src/sample_data/pras_files/2025-01-07_to_2025-01-13_s2_123456789101112_regions_nem.pras"
+file_name = "src/sample_data/pras_files/2025-01-07_to_2025-01-13_s2_123456789101112_regions.pras"
 sys = SystemModel(file_name)
 sf, = assess(sys, SequentialMonteCarlo(samples=100), Shortfall())
 
