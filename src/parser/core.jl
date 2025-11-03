@@ -106,7 +106,7 @@ function create_pras_file(start_dt::DateTime, end_dt::DateTime, input_folder, ou
     genstors, genstors_region_attribution = createGenStorages(storages_input_file, generators_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
         scenario=scenario, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded, investment_filter=investment_filter, active_filter=active_filter, 
         default_hydro_values=default_hydro_values)
-    demandresponses, dr_region_attribution = createDemandResponses(demandresponses_input_file, demand_input_filename, timeseries_folder, units, regions_selected, start_dt, end_dt; 
+    demandresponses, dr_region_attribution = createDemandResponses(demandresponses_input_file, demand_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
         scenario=scenario, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded, investment_filter=investment_filter, active_filter=active_filter)
 
     if length(regions_selected) <= 1
