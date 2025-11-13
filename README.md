@@ -36,7 +36,7 @@ end_dt = DateTime("2025-01-13 23:00:00", dateformat"yyyy-mm-dd HH:MM:SS")
 input_folder = joinpath(pwd(), "src", "sample_data", "nem12")
 output_folder = joinpath(pwd(), "src", "sample_data", "pras_files")
 timeseries_folder = joinpath(input_folder, "schedule-1w")
-sys = PRASNEM.create_pras_file(start_dt, end_dt, input_folder, timeseries_folder; output_folder=output_folder, regions_selected=collect(1:12));
+sys = PRASNEM.create_pras_system(start_dt, end_dt, input_folder, timeseries_folder; output_folder=output_folder, regions_selected=collect(1:12));
 ```
 
 #### Evaulating reliability
@@ -64,6 +64,7 @@ println(LOLE(sf))
 println(NEUE(sf))
 ```
 
+#### Optional parameters of PRASNEM.create_pras_system
 
 #### Further PRAS functions
 For reference, these are a number of possible outputs from PRAS:
