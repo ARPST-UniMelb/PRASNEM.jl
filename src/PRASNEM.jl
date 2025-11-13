@@ -10,9 +10,10 @@ using PISP
 # Include the parser files
 include("./parser/core.jl")
 
-
 # Include the functions for running PRAS
 include("./studies/core.jl")
 
+# Include the customised functions to analyse PRAS output
+include("./analysis/core.jl")
 
 end
