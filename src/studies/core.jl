@@ -1,4 +1,4 @@
-function run_pras_study(sys_input, sample_number::Int=1000)
+function run_pras_study(sys_input, sample_number::Int=100)
     
     println("Using $(Threads.nthreads()) threads")
 
@@ -18,5 +18,7 @@ function run_pras_study(sys_input, sample_number::Int=1000)
     println(LOLE(sf))
     println(EUE(sf))
     println(NEUE(sf))
+
+    return sf
 
 end
