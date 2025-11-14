@@ -10,7 +10,7 @@ function run_pras_study(sys_input, sample_number::Int=100)
     end
 
     #%% 
-    println("Evaluating system...")
+    println("Assessing system...")
     sf,  = assess(sys, SequentialMonteCarlo(samples=sample_number), Shortfall())
 
     #%%
