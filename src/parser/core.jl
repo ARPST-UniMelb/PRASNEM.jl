@@ -16,7 +16,8 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
     alias_excluded::Union{Vector{Any}, Vector{String}}=[], # can select a subset or set to empty for all []
     investment_filter::Union{Vector{Any}, Vector{Int}}=[0], # only include assets that are not selected for investment
     active_filter::Union{Vector{Any}, Vector{Int}}=[1], # only include active assets
-    line_alias_included::Union{Vector{Any}, Vector{String}}=[] # can include specific lines to be included even if they would be filtered out due to investment/active status
+    line_alias_included::Union{Vector{Any}, Vector{String}}=[], # can include specific lines to be included even if they would be filtered out due to investment/active status
+    weather_folder::String="" # Can specify a specific folder with the timeseries weather data that should be used (no capacities are read from here, just normalised timeseries)
     )
     """
     Create a PRAS file from NEM12 input data.
@@ -30,7 +31,15 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
     - investment_filter (default=[0]): Array indicating which assets to include based on investment status.
     - active_filter (default=[1]): Array indicating which assets to include based on their active status.
     - line_alias_included (default=[]): Array of line aliases to include even if they would be filtered out due to investment/active status.
-
+    - weather_folder (default=""): Folder with weather data timeseries to use (no capacities are read from here, just normalised timeseries for demand, VRE and DSP).
+    
+    Some further notes:
+    - If a different weather folder is specified: 
+        - Demand timeseries are read from there instead of the main timeseries folder (normalised to match max demand target year).
+        - Generator pmax timeseries for renewables (solar, wind, hydro) are read from there instead of the main timeseries folder (normalised to match max generation target year).
+        - Storage genstorage inflow timeseries are read from there instead of the main timeseries folder (not normalised).
+        - Demand response timeseries are read from there instead of the main timeseries folder (normalised to match max capacity target year).
+    
     """
     # Run function to check if optional parameters are valid
     check_optional_parameters(regions_selected)
@@ -77,6 +86,8 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
     output_name = string(Date(start_dt), "_to_", Date(end_dt), "_s", scenario, "_")
     if isempty(regions_selected)
         output_name *= "copperplate"
+    elseif length(regions_selected) == 12
+        output_name *= "all_regions"
     else
         output_name *= prod(string.(regions_selected)) * "_regions"
     end
@@ -98,6 +109,10 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
         output_name *= "_incl_" * join(line_alias_included, "_")
     end
 
+    if !isempty(weather_folder)
+        output_name *= "_w-" * splitext(basename(weather_folder))[1]
+    end
+
     output_filename = string(output_name, ".pras")
 
     # Define input and output full file paths
@@ -109,6 +124,11 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
     demandresponses_input_file = joinpath(input_folder, demandresponses_input_filename)
     output_filepath = joinpath(output_folder, output_filename)
 
+    if !(output_folder == "") &&  ispath(output_filepath)
+        println("Output file already exists: ", output_filepath)
+        println("Loading file...")
+        return SystemModel(output_filepath)
+    end
 
     # ---- CREATE PRAS FILE ----
     println("Creating PRAS file from input data...")
@@ -119,17 +139,21 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
     println("Excluded aliases: ", if isempty(alias_excluded) "None" else alias_excluded end)
     println("Additional lines included: ", if isempty(line_alias_included) "None" else line_alias_included end)
     println("Input folder: ", timeseries_folder)
+    if !(weather_folder == "")
+        println("Using different weather year from folder: ", weather_folder)
+    end
+    println("")
 
-    regions = createRegions(demand_input_file, timeseries_folder, units, regions_selected, scenario, start_dt, end_dt)
+    regions = createRegions(demand_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; scenario=scenario, weather_folder=weather_folder)
     gens, gen_region_attribution = createGenerators(generators_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
         scenario=scenario, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded, investment_filter=investment_filter, active_filter=active_filter)
     stors, stors_region_attribution = createStorages(storages_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
         scenario=scenario, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded, investment_filter=investment_filter, active_filter=active_filter)
     genstors, genstors_region_attribution = createGenStorages(storages_input_file, generators_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
         scenario=scenario, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded, investment_filter=investment_filter, active_filter=active_filter, 
-        default_hydro_values=default_hydro_values)
+        default_hydro_values=default_hydro_values, weather_folder=weather_folder)
     demandresponses, dr_region_attribution = createDemandResponses(demandresponses_input_file, demand_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
-        scenario=scenario, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded, investment_filter=investment_filter, active_filter=active_filter)
+        scenario=scenario, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded, investment_filter=investment_filter, active_filter=active_filter, weather_folder=weather_folder)
 
     if length(regions_selected) <= 1
         # If copperplate model is desired

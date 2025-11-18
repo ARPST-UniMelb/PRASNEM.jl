@@ -64,3 +64,25 @@ function check_optional_parameters(regions_selected)
     end
 
 end
+
+# ====================================================
+function update_with_weather_year(df_filtered, df_filtered_weather; timeseries_name="")
+
+    # Check if the number of rows match
+    if nrow(df_filtered) != nrow(df_filtered_weather)
+        error("The number of rows in the original and weather year timeseries do not match. Please check timeseries folder selection.")
+    end
+
+    # Update the original filtered dataframe with the weather year data
+    for col in names(df_filtered)
+        if col == "date"
+            continue
+        elseif col in names(df_filtered_weather)
+            df_filtered[!, col] = df_filtered_weather[!, col]
+        else
+            println("WARNING: Column $col in original data $timeseries_name not found in weather year data. Skipping this column.")
+        end
+    end
+
+    return df_filtered
+end

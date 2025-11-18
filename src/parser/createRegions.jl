@@ -1,4 +1,9 @@
-function createRegions(demand_input_file, timeseries_folder, units, region_names::Union{Vector{Int}, Vector{Any},UnitRange{Int64}}=[], scenario::Int=2, start_dt::Union{Nothing, DateTime}=nothing, end_dt::Union{Nothing, DateTime}=nothing)
+function createRegions(demand_input_file, timeseries_folder, units, 
+    region_names::Union{Vector{Int}, Vector{Any},UnitRange{Int64}}=[], 
+    start_dt::Union{Nothing, DateTime}=nothing, end_dt::Union{Nothing, DateTime}=nothing;
+    scenario::Int=2, 
+    weather_folder::String=""
+    )
 
     # First, get the region names and demand ids
     dem_info = CSV.read(demand_input_file, DataFrame)
@@ -11,13 +16,22 @@ function createRegions(demand_input_file, timeseries_folder, units, region_names
     # Exclude all the DSP objects - they are included as demandresponse objects
     filter!(row -> !occursin("DSP", row[:name]), dem_info)
 
-    # Read and filter the timestep load file
+    # Read and filter the original timestep load file for the selected year (based on timeseries folder)
     load_input_file = joinpath(timeseries_folder, "Demand_load_sched.csv")
     load_data = read_timeseries_file(load_input_file)
     df_filtered = PISP.filterSortTimeseriesData(load_data, units, start_dt, end_dt, dem_info, "", scenario, "id_dem", dem_info.id_dem[:])
 
-    number_of_regions = length(region_names)
+    # If a different weather year is specified, read and filter that file instead
+    if weather_folder != ""
+        load_input_file_weather = joinpath(weather_folder, "Demand_load_sched.csv")
+        load_data_weather = read_timeseries_file(load_input_file_weather)
+        load_data_weather.date = load_data.date # Ensure dates match
+        df_filtered_weather = PISP.filterSortTimeseriesData(load_data_weather, units, start_dt, end_dt, dem_info, "", scenario, "id_dem", dem_info.id_dem[:])
 
+        df_filtered = update_with_weather_year(df_filtered, df_filtered_weather; timeseries_name="Demand")
+    end
+
+    number_of_regions = length(region_names)
     if number_of_regions == 0
 
         # Sum up all the demand into one vector

@@ -1,6 +1,7 @@
 function createGenStorages(storages_input_file, generators_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
     scenario=2, gentech_excluded=[], alias_excluded=[], investment_filter=[0], active_filter=[1], 
-    default_hydro_values=Dict{String, Any}())
+    default_hydro_values=Dict{String, Any}(),
+    weather_folder="")
 
 
 
@@ -26,7 +27,11 @@ function createGenStorages(storages_input_file, generators_input_file, timeserie
     # Now read in the time-varying data for the genstor objects
     
     # Inflow data (optional)
-    inflows_file = joinpath(timeseries_folder, "Generator_inflow_sched.csv")
+    if weather_folder != "" # If a weather folder is provided, read from there
+        inflows_file = joinpath(weather_folder, "Generator_inflow_sched.csv")
+    else
+        inflows_file = joinpath(timeseries_folder, "Generator_inflow_sched.csv")
+    end
     if isfile(inflows_file)
         #println("Inflow timeseries file found for hydro generators/storages.")
         timeseries_inflows = read_timeseries_file(inflows_file)
