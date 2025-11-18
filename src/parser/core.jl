@@ -64,7 +64,9 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
     default_hydro_values["reservoir_carryover_efficiency"] = 1.0
     default_hydro_values["default_static_inflow"] = 0.0 # As a factor of the grid injection capacity (e.g. 0.5 means that the inflow is 50% of the grid injection capacity) - this mostly applies to PHSP
 
-    
+    if weather_folder == timeseries_folder
+        weather_folder = "" # Skip updating weather folder if it's the same as the main timeseries folder
+    end
 
     # ---- SETUP INPUT AND OUTPUT FILES ----
 

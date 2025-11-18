@@ -43,7 +43,7 @@ function createDemandResponses(der_input_file, demand_input_file, timeseries_fol
         if weather_folder != ""
             timeseries_dr_file_weather = joinpath(weather_folder, "DER_pred_sched.csv")
             dr_full_weather = read_timeseries_file(timeseries_dr_file_weather)
-            dr_full_weather.date = dr_full.date # Ensure dates match
+            dr_full_weather = update_dates(dr_full_weather, year(start_dt)) # To match the year of the main timeseries and adjust for leap years
             dr_timeseries_weather = PISP.filterSortTimeseriesData(dr_full_weather, units, start_dt, end_dt, dr_info, "pred_max", scenario, "id_der", dr_info.id_der[:])
 
             dr_timeseries = update_with_weather_year(dr_timeseries, dr_timeseries_weather; timeseries_name="DER")

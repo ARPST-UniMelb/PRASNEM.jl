@@ -29,17 +29,27 @@ function createGenStorages(storages_input_file, generators_input_file, timeserie
     # Inflow data (optional)
     if weather_folder != "" # If a weather folder is provided, read from there
         inflows_file = joinpath(weather_folder, "Generator_inflow_sched.csv")
+        if isfile(inflows_file)
+            #println("Inflow timeseries file found for hydro generators/storages.")
+            timeseries_inflows = read_timeseries_file(inflows_file)
+            timeseries_inflows = update_dates(timeseries_inflows, year(start_dt)) # To match the year of the main timeseries and adjust for leap years
+            inflows_filtered = PISP.filterSortTimeseriesData(timeseries_inflows, units, start_dt, end_dt, DataFrame(), "", scenario, "id_gen", gen_data.id_gen[:])
+        else
+            inflows_filtered = DataFrame()
+            println("WARNING: No inflow timeseries file found for hydro generators/storages. Using default static inflow values: ", default_hydro_values["default_static_inflow"]*100, " % of injection capacity for all hydro generators-storages.")
+        end
     else
         inflows_file = joinpath(timeseries_folder, "Generator_inflow_sched.csv")
+        if isfile(inflows_file)
+            #println("Inflow timeseries file found for hydro generators/storages.")
+            timeseries_inflows = read_timeseries_file(inflows_file)
+            inflows_filtered = PISP.filterSortTimeseriesData(timeseries_inflows, units, start_dt, end_dt, DataFrame(), "", scenario, "id_gen", gen_data.id_gen[:])
+        else
+            inflows_filtered = DataFrame()
+            println("WARNING: No inflow timeseries file found for hydro generators/storages. Using default static inflow values: ", default_hydro_values["default_static_inflow"]*100, " % of injection capacity for all hydro generators-storages.")
+        end
     end
-    if isfile(inflows_file)
-        #println("Inflow timeseries file found for hydro generators/storages.")
-        timeseries_inflows = read_timeseries_file(inflows_file)
-        inflows_filtered = PISP.filterSortTimeseriesData(timeseries_inflows, units, start_dt, end_dt, DataFrame(), "", scenario, "id_gen", gen_data.id_gen[:])
-    else
-        inflows_filtered = DataFrame()
-        println("WARNING: No inflow timeseries file found for hydro generators/storages. Using default static inflow values: ", default_hydro_values["default_static_inflow"]*100, " % of injection capacity for all hydro generators-storages.")
-    end
+    
 
 
     # Add here the timevarying data for the storages if available in the future
