@@ -65,6 +65,19 @@ println(NEUE(sf))
 ```
 
 #### Optional parameters of PRASNEM.create_pras_system
+There are multiple optional parameters that can be adjusted when creating the pras system:
+| Parameter           | Default       | Description                                                                                                                        |
+| ------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| output_folder       | ""            | Folder to save the PRAS file. If empty, the PRAS file is not saved.                                                                |
+| regions_selected    | collect(1:12) | Array of region IDs to include (needs to be in ascending order). Empty array for copperplate model.                                |
+| scenario            | 2             | ISP scenario to use (1: progressive change, 2: step change, 3: green hydrogen exports)                                             |
+| gentech_excluded    | []            | Array of generator technologies to exclude (can be fuel or technology, e.g. "Coal", "RoofPV", ...)                                 |
+| alias_excluded      | []            | Array of generator/storage/DER aliases to exclude (e.g. "GSTONE1")                                                                 |
+| investment_filer    | [0]           | Array indicating which assets to include based on investment status (if investment candidate or not)                               |
+| active_filter       | [1]           | Array indicating which assets to include based on their active status                                                              |
+| line_alias_included | []            | Array of line aliases to include even if they would be filtered out due to investment/active status                                |
+| weather_folder      | ""            | Folder with weather data timeseries to use (no capacities are read from here, only normalised timeseries for demand, VRE, and DSP). Inflows are considered in full (not normalised).|
+
 
 #### Further PRAS functions
 For reference, these are a number of possible outputs from PRAS:
@@ -72,7 +85,7 @@ For reference, these are a number of possible outputs from PRAS:
 using PRAS
 
 # Assuming that sys is already in memory (see above)
-nsamples = 1000
+nsamples = 100
 shortfalls, surplus, genavail, storage_energy, generator_storage_energy, flow = assess(
     sys, SequentialMonteCarlo(samples=nsamples),
     Shortfall(), Surplus(), GeneratorAvailability(), StorageEnergy(), GeneratorStorageEnergy(), Flow());

@@ -1,5 +1,6 @@
 function createGenerators(generators_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
-        scenario=2, gentech_excluded=[], alias_excluded=[], investment_filter=[0], active_filter=[1], get_only_hydro=false)
+        scenario=2, gentech_excluded=[], alias_excluded=[], investment_filter=[0], active_filter=[1], get_only_hydro=false, 
+        weather_folder="", update_gentech_with_weather_year=["Solar","Wind", "Hydro"])
 
     # Read in all the metadata of the generators
     gen_info = CSV.read(generators_input_file, DataFrame)
@@ -64,6 +65,22 @@ function createGenerators(generators_input_file, timeseries_folder, units, regio
     pmax = read_timeseries_file(timeseries_file_pmax)
     timeseries_pmax = PISP.filterSortTimeseriesData(pmax, units, start_dt, end_dt, gen_info, "pmax", scenario, "id_gen", gen_info.id_gen[:])
     timeseries_pmax_gen_ids = parse.(Int, names(select(timeseries_pmax, Not(:date))))
+
+    # If a different weather year is specified, read and filter that file instead
+    if weather_folder != ""
+        timeseries_file_pmax_weather = joinpath(weather_folder, "Generator_pmax_sched.csv")
+        pmax_weather = read_timeseries_file(timeseries_file_pmax_weather)
+        
+        # Select only the relevant generators to update
+        update_gentech_with_weather_year_ids = [row[:id_gen] for row in eachrow(gen_info) if row[:fuel] in update_gentech_with_weather_year]
+        filter(row -> row[:id_gen] in update_gentech_with_weather_year_ids, pmax_weather)
+        
+        pmax_weather = update_dates(pmax_weather, year(start_dt)) # To match the year of the main timeseries and adjust for leap years
+        df_filtered_weather = PISP.filterSortTimeseriesData(pmax_weather, units, start_dt, end_dt, gen_info, "pmax", scenario, "id_gen", gen_info.id_gen[:])
+
+        timeseries_pmax = update_with_weather_year(timeseries_pmax, df_filtered_weather; timeseries_name="Generator Pmax")
+    end
+
 
     # Convert the timeseries data into the PRAS format
     Ngens = sum(gen_info.n)

@@ -1,5 +1,5 @@
 function createDemandResponses(der_input_file, demand_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
-        scenario=2, gentech_excluded=[], alias_excluded=[], investment_filter=[false], active_filter=[true])
+        scenario=2, gentech_excluded=[], alias_excluded=[], investment_filter=[false], active_filter=[true], weather_folder="")
         """
         Assumptions taken for now (implicitly):
                 - n=1 for all drs (constant) - i.e. not read in from file
@@ -38,6 +38,16 @@ function createDemandResponses(der_input_file, demand_input_file, timeseries_fol
         timeseries_dr_file = joinpath(timeseries_folder, "DER_pred_sched.csv")
         dr_full = read_timeseries_file(timeseries_dr_file)
         dr_timeseries = PISP.filterSortTimeseriesData(dr_full, units, start_dt, end_dt, dr_info, "pred_max", scenario, "id_der", dr_info.id_der[:])
+
+        # If a different weather year is specified, read and filter that file instead
+        if weather_folder != ""
+            timeseries_dr_file_weather = joinpath(weather_folder, "DER_pred_sched.csv")
+            dr_full_weather = read_timeseries_file(timeseries_dr_file_weather)
+            dr_full_weather = update_dates(dr_full_weather, year(start_dt)) # To match the year of the main timeseries and adjust for leap years
+            dr_timeseries_weather = PISP.filterSortTimeseriesData(dr_full_weather, units, start_dt, end_dt, dr_info, "pred_max", scenario, "id_der", dr_info.id_der[:])
+
+            dr_timeseries = update_with_weather_year(dr_timeseries, dr_timeseries_weather; timeseries_name="DER")
+        end
 
         # Create a "duration" column to artificially create a hierarchy between the dr_types
         dr_info.duration = zeros(Int, nrow(dr_info))

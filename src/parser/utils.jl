@@ -47,10 +47,11 @@ function read_timeseries_file(file_path::String)
 end
 
 # ====================================================
-function check_optional_parameters(regions_selected)
+function check_parameters(regions_selected, weather_folder, start_dt, end_dt)
     """
     Function to check if optional parameters provided are valid.
     """
+    # ============= CHECKS DUE TO PRAS FUNCTIONALITY LIMITATIONS
     # Check if regions_selected is not empty
     if !isempty(regions_selected)
         # Check if regions_selected contains only integers
@@ -63,4 +64,56 @@ function check_optional_parameters(regions_selected)
         end
     end
 
+
+    # ============= CHECKS BECAUSE FUNCTIONALITY IS NOT IMPLEMENTED YET
+    # If weather_folder is specified, check if start_dt and end_dt are in the same year (else there would be problems for now)
+    if weather_folder != ""
+        if year(start_dt) != year(end_dt)
+            error("If weather_folder is specified, start_dt and end_dt must be in the same year.")
+        end
+    end
+
+end
+
+# ====================================================
+
+function update_dates(df, year::Int)
+    """
+    Function to update the year in the date column of a DataFrame.
+    """
+    if isleapyear(df.date[1]) && !isleapyear(year)
+        # If the original year is a leap year and the new year is not, remove Feb 29
+        df = filter(row -> !(month(row.date) == 2 && day(row.date) == 29), df)
+    elseif !isleapyear(df.date[1]) && isleapyear(year)
+        println("INFO: Original data is not a leap year, but the target year is a leap year. Adding Feb 29 as duplicate of Feb 28.")
+        # Add Feb 29 as the same as Feb 28
+        feb28_rows = filter(row -> month(row.date) == 2 && day(row.date) == 28, df)
+        feb29_rows = deepcopy(feb28_rows)
+        feb29_rows.date .= DateTime.(year, 2, 29, hour.(feb28_rows.date), minute.(feb28_rows.date), second.(feb28_rows.date))
+        df = vcat(df, feb29_rows)
+        sort!(df, :date)
+    end
+    df.date = DateTime.(year, month.(df.date), day.(df.date), hour.(df.date), minute.(df.date), second.(df.date))
+    return df
+end
+
+function update_with_weather_year(df_filtered, df_filtered_weather; timeseries_name="")
+
+    # Check if the number of rows match
+    if nrow(df_filtered) != nrow(df_filtered_weather)
+        error("The number of rows in the original and weather year timeseries do not match. Please check timeseries folder selection.")
+    end
+
+    # Update the original filtered dataframe with the weather year data
+    for col in names(df_filtered)
+        if col == "date"
+            continue
+        elseif col in names(df_filtered_weather)
+            df_filtered[!, col] = df_filtered_weather[!, col]
+        else
+            println("WARNING: Column $col in original data $timeseries_name not found in weather year data. Skipping this column.")
+        end
+    end
+
+    return df_filtered
 end
