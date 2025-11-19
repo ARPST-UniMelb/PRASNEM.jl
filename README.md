@@ -76,7 +76,7 @@ There are multiple optional parameters that can be adjusted when creating the pr
 | investment_filer    | [0]           | Array indicating which assets to include based on investment status (if investment candidate or not)                               |
 | active_filter       | [1]           | Array indicating which assets to include based on their active status                                                              |
 | line_alias_included | []            | Array of line aliases to include even if they would be filtered out due to investment/active status                                |
-| weather_folder      | ""            | Folder with weather data timeseries to use (no capacities are read from here, only normalised timeseries for demand, VRE and DSP). |
+| weather_folder      | ""            | Folder with weather data timeseries to use (no capacities are read from here, only normalised timeseries for demand, VRE, and DSP). Inflows are considered in full (not normalised).|
 
 
 #### Further PRAS functions
@@ -85,7 +85,7 @@ For reference, these are a number of possible outputs from PRAS:
 using PRAS
 
 # Assuming that sys is already in memory (see above)
-nsamples = 1000
+nsamples = 100
 shortfalls, surplus, genavail, storage_energy, generator_storage_energy, flow = assess(
     sys, SequentialMonteCarlo(samples=nsamples),
     Shortfall(), Surplus(), GeneratorAvailability(), StorageEnergy(), GeneratorStorageEnergy(), Flow());
