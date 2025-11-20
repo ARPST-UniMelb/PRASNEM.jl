@@ -6,7 +6,7 @@ include("./createGenStorages.jl")
 include("./createLinesInterfaces.jl")
 include("./createDemandResponses.jl")
 include("./utils.jl") # this includes helper functions such as get_unit_region_assignment
-
+include("./scenario_assumptions.jl") # This includes helper function for scenario assumptions, such as when lines should be added
 
 function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::String, timeseries_folder::String;
     output_folder::String="",
