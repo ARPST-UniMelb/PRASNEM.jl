@@ -45,7 +45,7 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
     check_parameters(regions_selected, weather_folder, start_dt, end_dt)
     
     timezone = tz"Australia/Sydney"
-    timestep_count = Int(round((Dates.value(end_dt - start_dt) / (60*60*1000)) + 1)) # Dates.value returns ms
+    timestep_count = Int(floor((Dates.value(end_dt - start_dt) / (60*60*1000)) + 1)) # Dates.value returns ms, round down to whole hours
 
     units = (N = timestep_count, # Number of timesteps
         L = 1, # Timestep Length
