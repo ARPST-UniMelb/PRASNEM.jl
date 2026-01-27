@@ -63,7 +63,12 @@ function get_all_event_details(sfsamples; sesamples=nothing, sys=nothing)
         for r in 1:Nregions
             t = get_event_details(sfsamples.shortfall[r,:,i])
             for event in t
-                push!(df, (event.length, event.sum, event.maximum, event.start_index, event.end_index, r, region_area_map[r], i, total_energy[1,event.start_index-1,i]))
+                if event.start_index == 1
+                    @info "Load shedding in the first time step of sample $i in region $r. Energy before event is set to NaN."
+                    push!(df, (event.length, event.sum, event.maximum, event.start_index, event.end_index, r, region_area_map[r], i, NaN))
+                else
+                    push!(df, (event.length, event.sum, event.maximum, event.start_index, event.end_index, r, region_area_map[r], i, total_energy[1,event.start_index-1,i]))
+                end
             end
         end
     end
