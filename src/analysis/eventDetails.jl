@@ -155,7 +155,6 @@ function get_all_event_details(sfsamples; sesamples=nothing, sys=nothing, df_nos
                     else
                         start_critical_index = find_start_of_critical_event(df_nostor, i, event.start_index)
                         total_energy_at_critical_index = total_energy[1,start_critical_index-1,i]
-                        println(i, ", ", r, ", ", event.start_index, " -> ", start_critical_index, "\n")
                     end
                     push!(df, (event.length, event.sum, event.maximum, event.start_index, event.end_index, start_critical_index, r, region_area_map[r], i, total_energy[1,event.start_index-1,i], total_energy_at_critical_index))
                 end
