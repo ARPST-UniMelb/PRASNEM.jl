@@ -13,3 +13,5 @@ include("updateStorageOperation.jl")
 # Function to update a PRAS model with generator commitment and ramping
 include("updateGeneratorOperation.jl")
 
+# Function to update a PRAS model with DER dispatch and demand response
+include("updateDEROperation.jl")
