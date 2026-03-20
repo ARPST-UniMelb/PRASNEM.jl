@@ -124,7 +124,13 @@ Analyzes all samples in `sfsamples` and returns a DataFrame with event details f
         - storages_energy_before: Total storage energy before the start of the USE event (as a fraction of total capacity if `sys` is provided).
 
 """
-function get_all_event_details(sfsamples; sesamples=nothing, sys=nothing, df_nostor=nothing)
+function get_all_event_details(sfsamples_input; sesamples=nothing, sys=nothing, df_nostor=nothing)
+
+    if typeof(sfsamples_input) <: PRASCore.Results.ShortfallSamplesResult
+        sfsamples = sfsamples_input.shortfall
+    else
+        sfsamples = sfsamples_input
+    end
     
     df = DataFrame(length=Int[], sum=Int[], maximum=Int[], 
         start_index=Int[], end_index=Int[], start_critical_index=Int[], 
@@ -132,7 +138,7 @@ function get_all_event_details(sfsamples; sesamples=nothing, sys=nothing, df_nos
         storages_energy_before=Float64[], storages_energy_start_critical_period=Float64[])
 
     if isnothing(sesamples)
-        total_energy = zeros(Float64, 1, size(sfsamples.shortfall, 2), size(sfsamples.shortfall, 3))
+        total_energy = zeros(Float64, 1, size(sfsamples, 2), size(sfsamples, 3))
         total_energy .= NaN
     else
         df.storages_energy_before = zeros(Float64, 0)
@@ -145,14 +151,14 @@ function get_all_event_details(sfsamples; sesamples=nothing, sys=nothing, df_nos
         end
     end
 
-    Nregions = size(sfsamples.shortfall, 1)
-    Nsamples = size(sfsamples.shortfall, 3)
+    Nregions = size(sfsamples, 1)
+    Nsamples = size(sfsamples, 3)
 
     region_area_map = get_region_area_map() # Map region to area
 
     for i in 1:Nsamples
         for r in 1:Nregions
-            t = get_event_details(sfsamples.shortfall[r,:,i])
+            t = get_event_details(sfsamples[r,:,i])
             for event in t
                 if event.start_index == 1
                     #@info "Load shedding in the first time step of sample $i in region $r. Energy before event is set to NaN."
