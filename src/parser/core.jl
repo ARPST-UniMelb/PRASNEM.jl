@@ -18,10 +18,7 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
     active_filter::Union{Vector{Any}, Vector{Int}}=[1], # only include active assets
     line_alias_included::Union{Vector{Any}, Vector{String}}=[], # can include specific lines to be included even if they would be filtered out due to investment/active status
     weather_folder::String="", # Can specify a specific folder with the timeseries weather data that should be used (no capacities are read from here, just normalised timeseries)
-    DER_parameters=Dict(
-            "DSP_flexibility"=>true, "DSP_payback_window"=>24, "DSP_interest"=>-1.0, "DSP_max_energy_factor"=>10.0,
-            "EV_charge_flexibility"=>false, "EV_payback_window"=>8, "EV_interest"=>0.0, "EV_max_energy_factor"=>100.0,
-            "VPP_flexibility"=>true) # Additional parameters for DER (e.g. whether to include EV flexibility or not)
+    DER_parameters=get_DER_parameters(case="base") # Additional parameters for DER (e.g. whether to include EV flexibility or not)
     )
     """
     Create a PRAS file from NEM12 input data.
@@ -152,8 +149,10 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
 
     # Print the parameters for the case being created
     der_considered = []
-    if "RoofPV" in alias_excluded
+    if !(DER_parameters["RoofPV"])
         push!(der_considered, "RoofPV")
+    else
+        push!(alias_excluded, "RoofPV")
     end
     if DER_parameters["DSP_flexibility"]
         push!(der_considered, "DSP")
