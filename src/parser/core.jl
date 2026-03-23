@@ -60,6 +60,11 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
         E = MWh # Energy Unit
     )
 
+    # Additional offset for dispatch problem
+    #          This is a "cost" that pushes storages, generatorstorages, demandresponses to also charge/discharge from gens further away (i.e. up to 12 hops)
+    #          This is only enabled/enforced for the custom PRASCore version, that is available at https://github.com/ARPST-UniMelb/PRAS.jl
+    additional_offset_DispatchProblem = 12 
+
     # Hydro default parameters
     default_hydro_values = Dict{String, Any}()
     default_hydro_values["run_of_river_discharge_time"] = 0 # This is the amount of timesteps that the run-of-river can discharge at full capacity (e.g. 0 = no storage)
@@ -213,7 +218,7 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
                     demandresponses, dr_region_attribution,
                     lines, line_interface_attribution,
                     ZonedDateTime(start_dt, timezone):units.T(units.L):ZonedDateTime(end_dt, timezone), # Timestamps
-                    Dict("case"=>output_name) # save case name as attribute
+                    Dict("case"=>output_name, "additional_offset_DispatchProblem"=>additional_offset_DispatchProblem) # save case name as attribute, and optional parameter to add additional offset for scheduling problem (only enabled for custom PRAS version that includes this as an option)
                     )
     end
     if !(output_folder == "")
