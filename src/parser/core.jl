@@ -222,7 +222,7 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
                     demandresponses, dr_region_attribution,
                     lines, line_interface_attribution,
                     ZonedDateTime(start_dt, timezone):units.T(units.L):ZonedDateTime(end_dt, timezone), # Timestamps
-                    Dict("case"=>output_name, "additional_offset_DispatchProblem"=>additional_offset_DispatchProblem) # save case name as attribute, and optional parameter to add additional offset for scheduling problem (only enabled for custom PRAS version that includes this as an option)
+                    Dict("case"=>output_name, "additional_offset_DispatchProblem"=>string(additional_offset_DispatchProblem)) # save case name as attribute, and optional parameter to add additional offset for scheduling problem (only enabled for custom PRAS version that includes this as an option)
                     )
     end
     if !(output_folder == "")
