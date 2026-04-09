@@ -1,9 +1,9 @@
 function createGenStorages(storages_input_file, generators_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
     scenario=2, gentech_excluded=[], alias_excluded=[], investment_filter=[0], active_filter=[1], 
-    default_hydro_values=Dict{String, Any}(),
+    hydro_parameters=get_hydro_parameters(),
     weather_folder="")
 
-
+    bus2area = get_region_area_map()
 
     # Now use the functions to get hydro generators from the generator and the storages data
     gens,  = createGenerators(generators_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
@@ -44,7 +44,7 @@ function createGenStorages(storages_input_file, generators_input_file, timeserie
         inflows_gen_filtered = PISP.filterSortTimeseriesData(timeseries_inflows, units, start_dt, end_dt, DataFrame(), "", scenario, "id_gen", gen_data.id_gen[:])
     else
         inflows_gen_filtered = DataFrame()
-        println("WARNING: No inflow timeseries file found for hydro generators. Using default static inflow values: ", default_hydro_values["default_static_inflow"]*100, " % of injection capacity for all hydro generators (run-of-river, reservoir).")
+        println("WARNING: No inflow timeseries file found for hydro generators. Using default static inflow values: ", hydro_parameters["default_static_inflow"]*100, " % of injection capacity for all hydro generators (run-of-river, reservoir).")
     end
 
     if isfile(inflows_stor_file)
@@ -55,7 +55,7 @@ function createGenStorages(storages_input_file, generators_input_file, timeserie
         inflows_stor_filtered = PISP.filterSortTimeseriesData(timeseries_inflows_stor, units, start_dt, end_dt, DataFrame(), "", scenario, "id_ess", stor_data.id_ess[:])
     else
         inflows_stor_filtered = DataFrame()
-        println("WARNING: No inflow timeseries file found for hydro storages. Using default static inflow values: ", default_hydro_values["default_static_inflow"]*100, " % of injection capacity for all hydro storages (pumped hydro).")
+        println("WARNING: No inflow timeseries file found for hydro storages. Using default static inflow values: ", hydro_parameters["default_static_inflow"]*100, " % of injection capacity for all hydro storages (pumped hydro).")
     end
 
     # Add here the timevarying data for the storages if available in the future
@@ -125,14 +125,30 @@ function createGenStorages(storages_input_file, generators_input_file, timeserie
             gridwithdrawalcapacity_data[idx, :] .= 0
             chargeefficiency_data[idx, :] .= 1.0 # Irrelevant
             gridinjectioncapacity_data[idx, :] .= gens.capacity[idx_gens, :]
+
+            # Temporary fix to set MCKAY1 as reservoir
+            if row.alias == "MCKAY1" 
+                row.tech = "Reservoir" 
+                @warn("MCKAY1 set to Reservoir - remove this temporary fix when McKay is updated as Reservoir in the input data.")
+            end
+
             if row.tech == "Run-of-River"
-                energycapacity_data[idx, :] .= round.(Int, gens.capacity[idx_gens, :] * default_hydro_values["run_of_river_discharge_time"])
-                dischargeefficiency_data[idx, :] .= default_hydro_values["run_of_river_discharge_efficiency"]
-                carryoverefficiency_data[idx, :] .= default_hydro_values["run_of_river_carryover_efficiency"]
+                energycapacity_data[idx, :] .= round.(Int, gens.capacity[idx_gens, :] * hydro_parameters["run_of_river_discharge_time"])
+                dischargeefficiency_data[idx, :] .= hydro_parameters["run_of_river_discharge_efficiency"]
+                carryoverefficiency_data[idx, :] .= hydro_parameters["run_of_river_carryover_efficiency"]
             else # Reservoir
-                energycapacity_data[idx, :] .= round.(Int, gens.capacity[idx_gens, :] * default_hydro_values["reservoir_discharge_time"])
-                dischargeefficiency_data[idx, :] .= default_hydro_values["reservoir_discharge_efficiency"]
-                carryoverefficiency_data[idx, :] .= default_hydro_values["reservoir_carryover_efficiency"]
+                # Now determine the discharge time from the parameters
+                if haskey(hydro_parameters["reservoir_discharge_time_units"], row.alias) # Is a specific discharge time provided for this unit?
+                    discharge_time = hydro_parameters["reservoir_discharge_time_units"][row.alias]
+                elseif haskey(hydro_parameters["reservoir_discharge_time_states"], bus2area[row.id_bus]) # Is a specific discharge time provided for this state?
+                    discharge_time = hydro_parameters["reservoir_discharge_time_states"][bus2area[row.id_bus]]
+                else
+                    discharge_time = hydro_parameters["reservoir_discharge_time_other"] # Else, use the default discharge time
+                end
+                
+                energycapacity_data[idx, :] .= round.(Int, gens.capacity[idx_gens, :] * discharge_time) # And calculate the energy capacity based on the discharge time
+                dischargeefficiency_data[idx, :] .= hydro_parameters["reservoir_discharge_efficiency"]
+                carryoverefficiency_data[idx, :] .= hydro_parameters["reservoir_carryover_efficiency"]
             end
 
             # Set the failure and repair probabilities
@@ -143,12 +159,32 @@ function createGenStorages(storages_input_file, generators_input_file, timeserie
         # Set the inflow data and initial state of charge (via "initial soc" inflow - this should be changed a a later time)
         if string(row.id_gen) in names(inflows_gen_filtered)
             inflow_data[idx, :] = round.(Int, inflows_gen_filtered[!, string(row.id_gen)])
-            inflow_data[idx, 1] += round.(Int, default_hydro_values["reservoir_initial_soc"] * energycapacity_data[idx, 1])
         elseif string(row.id_ess) in names(inflows_stor_filtered)
             inflow_data[idx, :] = round.(Int, inflows_stor_filtered[!, string(row.id_ess)])
-            inflow_data[idx, 1] += round.(Int, default_hydro_values["pumped_hydro_initial_soc"] * energycapacity_data[idx, 1])
         else
-            inflow_data[idx, :] .= round.(Int, gridinjectioncapacity_data[idx, :] * default_hydro_values["default_static_inflow"])
+            inflow_data[idx, :] .= round.(Int, gridinjectioncapacity_data[idx, :] * hydro_parameters["default_static_inflow"])
+        end
+
+        # Now determine the initial state of charge
+        
+        # For the reservoirs, set an initial state of charge via the inflow in the first time step
+        if row.tech == "Reservoir"
+            if haskey(hydro_parameters["reservoir_initial_soc_units"], row.alias) # Is a specific initial soc provided for this unit?
+                initial_soc = hydro_parameters["reservoir_initial_soc_units"][row.alias]
+            elseif haskey(hydro_parameters["reservoir_initial_soc_states"], bus2area[row.id_bus]) # Is a specific initial soc provided for this state?
+                initial_soc = hydro_parameters["reservoir_initial_soc_states"][bus2area[row.id_bus]]
+            else
+                initial_soc = hydro_parameters["reservoir_initial_soc_other"] # Else, use the default initial soc
+            end
+            inflow_data[idx, 1] += round.(Int, initial_soc * energycapacity_data[idx, 1]) # And add this to the first timestep
+        elseif row.tech == "PS"
+            # For the pumped hydro, set an initial state of charge via the inflow in the first time step
+            initial_soc = hydro_parameters["pumped_hydro_initial_soc"]
+            inflow_data[idx, 1] += round.(Int, initial_soc * energycapacity_data[idx, 1]) # And add this to the first timestep
+        elseif row.tech == "Run-of-River" && hydro_parameters["run_of_river_discharge_time"] > 0
+            # For the run-of-river, if there is some storage, set an initial state
+            initial_soc = hydro_parameters["run_of_river_initial_soc"]
+            inflow_data[idx, 1] += round.(Int, initial_soc * energycapacity_data[idx, 1]) # And add this to the first timestep
         end
 
         # For all objects: Set the charging capacity as grid withdrawal + inflows for each timestep (to always allow for the inflows)

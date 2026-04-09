@@ -98,20 +98,30 @@ Function to get the default hydro parameters for hydro generators and genstorage
 function get_hydro_parameters(;case="base")
 
     if case == "base"
-        default_hydro_values = Dict{String, Any}()
-        default_hydro_values["run_of_river_discharge_time"] = 0 # This is the amount of timesteps that the run-of-river can discharge at full capacity (e.g. 0 = no storage)
-        default_hydro_values["reservoir_discharge_time"] = 200 # This is the amount of timesteps that the reservoir can discharge at full capacity. A rough estimate of the tasmanian system is 200 hours = ~8 days of full discharge
-        default_hydro_values["reservoir_initial_soc"] = 0.5 # As a factor of the maximum energy capacity (e.g. 0.5 means 50% initial SOC)
-        default_hydro_values["pumped_hydro_initial_soc"] = 0.5 # As a factor of the maximum energy capacity (e.g. 0.5 means 50% initial SOC)
-        default_hydro_values["run_of_river_discharge_efficiency"] = 1.0
-        default_hydro_values["run_of_river_carryover_efficiency"] = 1.0 # Irrelevant when discharge time is zero anyway
-        default_hydro_values["reservoir_discharge_efficiency"] = 1.0
-        default_hydro_values["reservoir_carryover_efficiency"] = 1.0
-        default_hydro_values["default_static_inflow"] = 0.0 # As a factor of the grid injection capacity (e.g. 0.5 means that the inflow is 50% of the grid injection capacity) - this mostly applies to PHSP
+        hydro_parameters = Dict{String, Any}()
+        # Reservoirs sizes
+        hydro_parameters["reservoir_discharge_time_units"] = Dict{String, Any}("GORDON" => 10000, "POAT110" => 20000, 
+                            "MURRAY1" => 10000, "MCKAY1" => 300) # This is the amount of timesteps that the reservoir can discharge at full capacity. 
+        hydro_parameters["reservoir_discharge_time_states"] = Dict{Int, Any}(4 => 2000, 3 => 200) # 3 - VIC, 4 - TAS
+        hydro_parameters["reservoir_discharge_time_other"] = 200 # Default assumption for all other reservoirs
+        hydro_parameters["reservoir_initial_soc_units"] = Dict{String, Any}("GORDON" => 0.4, "POAT110" => 0.3, 
+                    "MURRAY1" => 0.5, "MCKAY1" => 0.5) # As a factor of the maximum energy capacity (e.g. 0.5 means 50% initial SOC)
+        hydro_parameters["reservoir_initial_soc_states"] = Dict{Int, Any}(4 => 0.6, 3 => 0.5) # As a factor of the maximum energy capacity (e.g. 0.5 means 50% initial SOC)
+        hydro_parameters["reservoir_initial_soc_other"] = 0.5 # As a factor of the maximum energy capacity (e.g. 0.5 means 50% initial SOC)
+        # Pumped Hydro assumptions
+        hydro_parameters["pumped_hydro_initial_soc"] = 0.5 # As a factor of the maximum energy capacity (e.g. 0.5 means 50% initial SOC)
+        # Run-of-river assumptions
+        hydro_parameters["run_of_river_discharge_time"] = 0 # This is the amount of timesteps that the run-of-river can discharge at full capacity (e.g. 0 = no storage)
+        hydro_parameters["run_of_river_discharge_efficiency"] = 1.0
+        hydro_parameters["run_of_river_carryover_efficiency"] = 1.0 # Irrelevant when discharge time is zero anyway
+        # Further reservoir assumptions
+        hydro_parameters["reservoir_discharge_efficiency"] = 1.0
+        hydro_parameters["reservoir_carryover_efficiency"] = 1.0
+        # Default inflow assumptions
+        hydro_parameters["default_static_inflow"] = 0.0 # As a factor of grid injection power capacity
     else
         error("Hydro parameter case not recognised.")
     end
     
-    
-    return default_hydro_values
+    return hydro_parameters
 end
