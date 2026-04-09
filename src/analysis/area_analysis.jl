@@ -3,7 +3,7 @@
 
 Returns a dictionary mapping region numbers to area numbers. Note this is for the ISP 2024 12-bus system.
 """
-function get_region_area_map(system="ISP24"; rev=false)
+function get_region_area_map(; system="ISP24", rev=false)
     
     if system != "ISP24"
         error("Region to area mapping is only defined for the ISP24 system.")
@@ -12,6 +12,17 @@ function get_region_area_map(system="ISP24"; rev=false)
         return Dict(1 => [1,2,3,4], 2 => [5,6,7,8], 3 => [9], 4 => [10], 5 => [11,12])
     end
     return Dict(1=>1, 2=>1, 3=>1, 4=>1, 5=>2, 6=>2, 7=>2, 8=>2, 9=>3, 10=>4, 11=>5, 12=>5)
+end
+"""
+    get_region_names(;system="ISP24")
+
+Returns a list of region names for the specified system. Note this is so far only for the ISP 2024 12-bus system.
+"""
+function get_region_names(;system="ISP24")
+    if system != "ISP24"
+        error("Region names are only defined for the ISP24 system.")
+    end
+    return ["NQ", "CQ", "GG", "SQ", "NNSW", "CNSW", "SNW", "SNSW", "VIC", "TAS", "CSA", "SESA"]
 end
 
 """
