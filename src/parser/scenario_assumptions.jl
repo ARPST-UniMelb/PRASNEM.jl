@@ -88,3 +88,30 @@ function get_DER_parameters(; case="base")
         error("DER parameter case not recognised.")
     end
 end
+
+"""
+
+    get_default_hydro_parameters(;case="base")
+
+Function to get the default hydro parameters for hydro generators and genstorages, which can be updated based on scenario assumptions.
+"""
+function get_hydro_parameters(;case="base")
+
+    if case == "base"
+        default_hydro_values = Dict{String, Any}()
+        default_hydro_values["run_of_river_discharge_time"] = 0 # This is the amount of timesteps that the run-of-river can discharge at full capacity (e.g. 0 = no storage)
+        default_hydro_values["reservoir_discharge_time"] = 200 # This is the amount of timesteps that the reservoir can discharge at full capacity. A rough estimate of the tasmanian system is 200 hours = ~8 days of full discharge
+        default_hydro_values["reservoir_initial_soc"] = 0.5 # As a factor of the maximum energy capacity (e.g. 0.5 means 50% initial SOC)
+        default_hydro_values["pumped_hydro_initial_soc"] = 0.5 # As a factor of the maximum energy capacity (e.g. 0.5 means 50% initial SOC)
+        default_hydro_values["run_of_river_discharge_efficiency"] = 1.0
+        default_hydro_values["run_of_river_carryover_efficiency"] = 1.0 # Irrelevant when discharge time is zero anyway
+        default_hydro_values["reservoir_discharge_efficiency"] = 1.0
+        default_hydro_values["reservoir_carryover_efficiency"] = 1.0
+        default_hydro_values["default_static_inflow"] = 0.0 # As a factor of the grid injection capacity (e.g. 0.5 means that the inflow is 50% of the grid injection capacity) - this mostly applies to PHSP
+    else
+        error("Hydro parameter case not recognised.")
+    end
+    
+    
+    return default_hydro_values
+end

@@ -18,7 +18,8 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
     active_filter::Union{Vector{Any}, Vector{Int}}=[1], # only include active assets
     line_alias_included::Union{Vector{Any}, Vector{String}}=[], # can include specific lines to be included even if they would be filtered out due to investment/active status
     weather_folder::String="", # Can specify a specific folder with the timeseries weather data that should be used (no capacities are read from here, just normalised timeseries)
-    DER_parameters=get_DER_parameters(case="base") # Additional parameters for DER (e.g. whether to include EV flexibility or not)
+    DER_parameters=get_DER_parameters(), # Additional parameters for DER (e.g. whether to include EV flexibility or not)
+    hydro_parameters=get_hydro_parameters() # Default parameters for hydro generators and genstorages (can be updated based on scenario assumptions)
     )
     """
     Create a PRAS file from NEM12 input data.
@@ -66,16 +67,6 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
     additional_offset_DispatchProblem = 12 
 
     # Hydro default parameters
-    default_hydro_values = Dict{String, Any}()
-    default_hydro_values["run_of_river_discharge_time"] = 0 # This is the amount of timesteps that the run-of-river can discharge at full capacity (e.g. 0 = no storage)
-    default_hydro_values["reservoir_discharge_time"] = 200 # This is the amount of timesteps that the reservoir can discharge at full capacity. A rough estimate of the tasmanian system is 200 hours = ~8 days of full discharge
-    default_hydro_values["reservoir_initial_soc"] = 0.5 # As a factor of the maximum energy capacity (e.g. 0.5 means 50% initial SOC)
-    default_hydro_values["pumped_hydro_initial_soc"] = 0.5 # As a factor of the maximum energy capacity (e.g. 0.5 means 50% initial SOC)
-    default_hydro_values["run_of_river_discharge_efficiency"] = 1.0
-    default_hydro_values["run_of_river_carryover_efficiency"] = 1.0 # Irrelevant when discharge time is zero anyway
-    default_hydro_values["reservoir_discharge_efficiency"] = 1.0
-    default_hydro_values["reservoir_carryover_efficiency"] = 1.0
-    default_hydro_values["default_static_inflow"] = 0.0 # As a factor of the grid injection capacity (e.g. 0.5 means that the inflow is 50% of the grid injection capacity) - this mostly applies to PHSP
 
     if weather_folder == timeseries_folder
         weather_folder = "" # Skip updating weather folder if it's the same as the main timeseries folder
