@@ -167,7 +167,7 @@ function createGenStorages(storages_input_file, generators_input_file, timeserie
 
         # Manual fix to scale inflows by unit number (remove later)
         @warn("Scaling inflows by unit number - remove this temporary fix when the inflow timeseries are updated in PISP.")
-        inflow_data[idx, :] .= inflow_data[idx, :] ./ row.n
+        inflow_data[idx, :] .= inflow_data[idx, :] ./ max(row.n, 1)
 
         # Now determine the initial state of charge
         
