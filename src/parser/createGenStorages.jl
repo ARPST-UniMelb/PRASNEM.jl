@@ -158,16 +158,15 @@ function createGenStorages(storages_input_file, generators_input_file, timeserie
 
         # Set the inflow data and initial state of charge (via "initial soc" inflow - this should be changed a a later time)
         if string(row.id_gen) in names(inflows_gen_filtered)
-            inflow_data[idx, :] = round.(Int, inflows_gen_filtered[!, string(row.id_gen)])
+            inflow_data[idx, :] = round.(Int, inflows_gen_filtered[!, string(row.id_gen)] ./ max(row.n, 1))
         elseif string(row.id_ess) in names(inflows_stor_filtered)
-            inflow_data[idx, :] = round.(Int, inflows_stor_filtered[!, string(row.id_ess)])
+            inflow_data[idx, :] = round.(Int, inflows_stor_filtered[!, string(row.id_ess)] ./ max(row.n, 1))
         else
             inflow_data[idx, :] .= round.(Int, gridinjectioncapacity_data[idx, :] * hydro_parameters["default_static_inflow"])
         end
 
         # Manual fix to scale inflows by unit number (remove later)
         @warn("Scaling inflows by unit number - remove this temporary fix when the inflow timeseries are updated in PISP.")
-        inflow_data[idx, :] .= inflow_data[idx, :] ./ max(row.n, 1)
 
         # Now determine the initial state of charge
         
