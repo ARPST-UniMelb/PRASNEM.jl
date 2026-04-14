@@ -122,6 +122,7 @@ function get_hydro_parameters(;case="base")
 
         # Additional parameters for SchedNEM
         hydro_parameters["hydro_discharging_cost"] = 8.58 # $/MWh
+        hydro_parameters["final_soc_constraint"] = ["Reservoir"] # Whether to include a final SOC constraint for each type of hydro category (e.g. "Reservoir", "Pumped Hydro", "Run-of-River")
 
     else
         error("Hydro parameter case not recognised.")
