@@ -50,11 +50,12 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
     if end_dt > Date(2038)
         timezone = tz"UTC"
     else
-        timezone = tz"Australia/Sydney"
+        # Set to NEM timezone by default (UTC+10, not winter/summer time, see https://wattclarity.com.au/other-resources/glossary/nem-time/)
+        timezone = tz"UTC+10"
     end
-    timestep_count = Int(floor((Dates.value(end_dt - start_dt) / (60*60*1000)) + 1)) # Dates.value returns ms, round down to whole hours
+    timesteps = ZonedDateTime(start_dt, timezone):Hour(1):ZonedDateTime(end_dt, timezone)
 
-    units = (N = timestep_count, # Number of timesteps
+    units = (N = length(timesteps), # Number of timesteps
         L = 1, # Timestep Length
         T = Hour, # Time unit
         P = MW, # Power Unit
@@ -194,7 +195,7 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
     if length(regions_selected) <= 1
         # If copperplate model is desired
         sys = SystemModel(gens, stors, genstors, demandresponses, 
-        ZonedDateTime(start_dt, timezone):units.T(units.L):ZonedDateTime(end_dt, timezone), 
+        timesteps, 
         regions.load[1, :], 
         Dict("case"=>output_name) ) # save case name as attribute
     else 
@@ -210,7 +211,7 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
                     genstors, genstors_region_attribution,
                     demandresponses, dr_region_attribution,
                     lines, line_interface_attribution,
-                    ZonedDateTime(start_dt, timezone):units.T(units.L):ZonedDateTime(end_dt, timezone), # Timestamps
+                    timesteps, # Timestamps
                     Dict("case"=>output_name, "additional_offset_DispatchProblem"=>string(additional_offset_DispatchProblem)) # save case name as attribute, and optional parameter to add additional offset for scheduling problem (only enabled for custom PRAS version that includes this as an option)
                     )
     end
