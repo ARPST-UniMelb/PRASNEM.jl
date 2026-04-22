@@ -74,15 +74,18 @@ function createLinesInterfaces(lines_input_file, timeseries_folder, units, regio
     line_data.failure_rate .= line_data.fullout ./ (line_data.mttrfull .* (1 .- line_data.fullout))
 
     # Get the timevarying data
-    timeseries_tmax_file = joinpath(timeseries_folder, "line_tmax_sched.csv")
-    tmax = read_timeseries_file(timeseries_tmax_file)
-    timeseries_tmax = PISP.filterSortTimeseriesData(tmax, units, start_dt, end_dt, line_data, "tmax", scenario, "id_lin", line_data.id_lin[:])
-    timeseries_tmax_lin_ids = parse.(Int, names(select(timeseries_tmax, Not(:date))))
+    if isfile(joinpath(timeseries_folder, "Line_tmax_sched.csv")) || isfile(joinpath(timeseries_folder, "Line_tmin_sched.csv"))
+       @error("Line limits in data are based on tmax and tmin (deprecated). Please re-download the timeseries data with PISP to follow updated naming convention (fwcap and rvcap).")
+    end
+    timeseries_fwcap_file = joinpath(timeseries_folder, "Line_fwcap_sched.csv")
+    fwcap = read_timeseries_file(timeseries_fwcap_file)
+    timeseries_fwcap = PISP.filterSortTimeseriesData(fwcap, units, start_dt, end_dt, line_data, "fwcap", scenario, "id_lin", line_data.id_lin[:])
+    timeseries_fwcap_lin_ids = parse.(Int, names(select(timeseries_fwcap, Not(:date))))
 
-    timeseries_tmin_file = joinpath(timeseries_folder, "line_tmin_sched.csv")
-    tmin = read_timeseries_file(timeseries_tmin_file)
-    timeseries_tmin = PISP.filterSortTimeseriesData(tmin, units, start_dt, end_dt, line_data, "tmin", scenario, "id_lin", line_data.id_lin[:])
-    timeseries_tmin_lin_ids = parse.(Int, names(select(timeseries_tmin, Not(:date))))
+    timeseries_rvcap_file = joinpath(timeseries_folder, "Line_rvcap_sched.csv")
+    rvcap = read_timeseries_file(timeseries_rvcap_file)
+    timeseries_rvcap = PISP.filterSortTimeseriesData(rvcap, units, start_dt, end_dt, line_data, "rvcap", scenario, "id_lin", line_data.id_lin[:])
+    timeseries_rvcap_lin_ids = parse.(Int, names(select(timeseries_rvcap, Not(:date))))
 
     # Interpolate the line capacity to all the timesteps
     N_lines = sum(line_data.n)
@@ -119,18 +122,18 @@ function createLinesInterfaces(lines_input_file, timeseries_folder, units, regio
                 line_bus_to_final[line_index_counter] = row.id_bus_to
 
                 # Then add the time-varying data
-                if (row.id_lin in timeseries_tmax_lin_ids)
+                if (row.id_lin in timeseries_fwcap_lin_ids)
                     # If there is time-varying data available
-                    cap_line_forward[line_index_counter, :] = round.(Int,timeseries_tmax[!, string(row.id_lin)][:])
+                    cap_line_forward[line_index_counter, :] = round.(Int,timeseries_fwcap[!, string(row.id_lin)][:])
                 else
-                    cap_line_forward[line_index_counter, :] = fill(round(Int, row[:tmax]), units.N)
+                    cap_line_forward[line_index_counter, :] = fill(round(Int, row[:fwcap]), units.N)
                 end
 
-                if (row.id_lin in timeseries_tmin_lin_ids)
+                if (row.id_lin in timeseries_rvcap_lin_ids)
                     # If there is time-varying data available
-                    cap_line_backward[line_index_counter, :] = round.(Int,timeseries_tmin[!, string(row.id_lin)][:])
+                    cap_line_backward[line_index_counter, :] = round.(Int,timeseries_rvcap[!, string(row.id_lin)][:])
                 else
-                    cap_line_backward[line_index_counter, :] = fill(round(Int, row[:tmin]), units.N)
+                    cap_line_backward[line_index_counter, :] = fill(round(Int, row[:rvcap]), units.N)
                 end
         
             else # if lower_bus_id is id_bus_to
@@ -140,18 +143,18 @@ function createLinesInterfaces(lines_input_file, timeseries_folder, units, regio
                 line_bus_to_final[line_index_counter] = row.id_bus_from
 
                 # Then add the time-varying data (swap forward and backward)
-                if (row.id_lin in timeseries_tmax_lin_ids)
+                if (row.id_lin in timeseries_fwcap_lin_ids)
                     # If there is time-varying data available
-                    cap_line_backward[line_index_counter, :] = round.(Int,timeseries_tmax[!, string(row.id_lin)][:])
+                    cap_line_backward[line_index_counter, :] = round.(Int,timeseries_fwcap[!, string(row.id_lin)][:])
                 else
-                    cap_line_backward[line_index_counter, :] = fill(round(Int, row[:tmax]), units.N)
+                    cap_line_backward[line_index_counter, :] = fill(round(Int, row[:fwcap]), units.N)
                 end
 
-                if (row.id_lin in timeseries_tmin_lin_ids)
+                if (row.id_lin in timeseries_rvcap_lin_ids)
                     # If there is time-varying data available
-                    cap_line_forward[line_index_counter, :] = round.(Int,timeseries_tmin[!, string(row.id_lin)][:])
+                    cap_line_forward[line_index_counter, :] = round.(Int,timeseries_rvcap[!, string(row.id_lin)][:])
                 else
-                    cap_line_forward[line_index_counter, :] = fill(round(Int, row[:tmin]), units.N)
+                    cap_line_forward[line_index_counter, :] = fill(round(Int, row[:rvcap]), units.N)
                 end
 
             end # end of switch if lower_bus_id

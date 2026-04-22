@@ -36,9 +36,9 @@
 >   - `pmax`: Maximum generator output (MW).
 > - Generator_n_sched: `value` n (p.u.) starting at a given `date`. Match with column `n` from Generator
 >   - `n`: Maximum number of online units
-> - Line_tmax_sched: `value` tmax (MW) starting at a given `date`. Match with column `tmax` from Line
->   - `tmax`: Maximum line forward rating (MW)
-> - Line_tmin_sched: `value` tmin (MW) starting at a given `date`. Match with column `tmin` from Line
->   - `tmin`: Maximum line reverse rating (MW)
+> - Line_fwcap_sched: `value` fwcap (MW) starting at a given `date`. Match with column `fwcap` from Line
+>   - `fwcap`: Maximum line forward rating (MW)
+> - Line_rvcap_sched: `value` rvcap (MW) starting at a given `date`. Match with column `rvcap` from Line
+>   - `rvcap`: Maximum line reverse rating (MW)
 >
 
