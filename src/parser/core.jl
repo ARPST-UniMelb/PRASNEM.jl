@@ -1,4 +1,5 @@
 
+include("./scenario_assumptions.jl") # This includes helper function for scenario assumptions, such as when lines should be added
 include("./createRegions.jl")
 include("./createGenerators.jl")
 include("./createStorages.jl")
@@ -6,7 +7,6 @@ include("./createGenStorages.jl")
 include("./createLinesInterfaces.jl")
 include("./createDemandResponses.jl")
 include("./utils.jl") # this includes helper functions such as get_unit_region_assignment
-include("./scenario_assumptions.jl") # This includes helper function for scenario assumptions, such as when lines should be added
 
 function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::String, timeseries_folder::String;
     output_folder::String="",
@@ -18,7 +18,8 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
     active_filter::Union{Vector{Any}, Vector{Int}}=[1], # only include active assets
     line_alias_included::Union{Vector{Any}, Vector{String}}=[], # can include specific lines to be included even if they would be filtered out due to investment/active status
     weather_folder::String="", # Can specify a specific folder with the timeseries weather data that should be used (no capacities are read from here, just normalised timeseries)
-    DER_parameters=get_DER_parameters(case="base") # Additional parameters for DER (e.g. whether to include EV flexibility or not)
+    DER_parameters=get_DER_parameters(), # Additional parameters for DER (e.g. whether to include EV flexibility or not)
+    hydro_parameters=get_hydro_parameters() # Default parameters for hydro generators and genstorages (can be updated based on scenario assumptions)
     )
     """
     Create a PRAS file from NEM12 input data.
@@ -49,11 +50,12 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
     if end_dt > Date(2038)
         timezone = tz"UTC"
     else
-        timezone = tz"Australia/Sydney"
+        # Set to NEM timezone by default (UTC+10, not winter/summer time, see https://wattclarity.com.au/other-resources/glossary/nem-time/)
+        timezone = tz"UTC+10"
     end
-    timestep_count = Int(floor((Dates.value(end_dt - start_dt) / (60*60*1000)) + 1)) # Dates.value returns ms, round down to whole hours
+    timesteps = ZonedDateTime(start_dt, timezone):Hour(1):ZonedDateTime(end_dt, timezone)
 
-    units = (N = timestep_count, # Number of timesteps
+    units = (N = length(timesteps), # Number of timesteps
         L = 1, # Timestep Length
         T = Hour, # Time unit
         P = MW, # Power Unit
@@ -64,18 +66,6 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
     #          This is a "cost" that pushes storages, generatorstorages, demandresponses to also charge/discharge from gens further away (i.e. up to 12 hops)
     #          This is only enabled/enforced for the custom PRASCore version, that is available at https://github.com/ARPST-UniMelb/PRAS.jl
     additional_offset_DispatchProblem = 12 
-
-    # Hydro default parameters
-    default_hydro_values = Dict{String, Any}()
-    default_hydro_values["run_of_river_discharge_time"] = 0 # This is the amount of timesteps that the run-of-river can discharge at full capacity (e.g. 0 = no storage)
-    default_hydro_values["reservoir_discharge_time"] = 200 # This is the amount of timesteps that the reservoir can discharge at full capacity. A rough estimate of the tasmanian system is 200 hours = ~8 days of full discharge
-    default_hydro_values["reservoir_initial_soc"] = 0.5 # As a factor of the maximum energy capacity (e.g. 0.5 means 50% initial SOC)
-    default_hydro_values["pumped_hydro_initial_soc"] = 0.5 # As a factor of the maximum energy capacity (e.g. 0.5 means 50% initial SOC)
-    default_hydro_values["run_of_river_discharge_efficiency"] = 1.0
-    default_hydro_values["run_of_river_carryover_efficiency"] = 1.0 # Irrelevant when discharge time is zero anyway
-    default_hydro_values["reservoir_discharge_efficiency"] = 1.0
-    default_hydro_values["reservoir_carryover_efficiency"] = 1.0
-    default_hydro_values["default_static_inflow"] = 0.0 # As a factor of the grid injection capacity (e.g. 0.5 means that the inflow is 50% of the grid injection capacity) - this mostly applies to PHSP
 
     if weather_folder == timeseries_folder
         weather_folder = "" # Skip updating weather folder if it's the same as the main timeseries folder
@@ -198,14 +188,14 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
         scenario=scenario, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded, investment_filter=investment_filter, active_filter=active_filter)
     genstors, genstors_region_attribution = createGenStorages(storages_input_file, generators_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
         scenario=scenario, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded, investment_filter=investment_filter, active_filter=active_filter, 
-        default_hydro_values=default_hydro_values, weather_folder=weather_folder)
+        hydro_parameters=hydro_parameters, weather_folder=weather_folder)
     demandresponses, dr_region_attribution = createDemandResponses(demandresponses_input_file, demand_input_file, timeseries_folder, units, regions_selected, start_dt, end_dt; 
         scenario=scenario, gentech_excluded=gentech_excluded, alias_excluded=alias_excluded, investment_filter=investment_filter, active_filter=active_filter, weather_folder=weather_folder, DER_parameters=DER_parameters)
 
     if length(regions_selected) <= 1
         # If copperplate model is desired
         sys = SystemModel(gens, stors, genstors, demandresponses, 
-        ZonedDateTime(start_dt, timezone):units.T(units.L):ZonedDateTime(end_dt, timezone), 
+        timesteps, 
         regions.load[1, :], 
         Dict("case"=>output_name) ) # save case name as attribute
     else 
@@ -221,7 +211,7 @@ function create_pras_system(start_dt::DateTime, end_dt::DateTime, input_folder::
                     genstors, genstors_region_attribution,
                     demandresponses, dr_region_attribution,
                     lines, line_interface_attribution,
-                    ZonedDateTime(start_dt, timezone):units.T(units.L):ZonedDateTime(end_dt, timezone), # Timestamps
+                    timesteps, # Timestamps
                     Dict("case"=>output_name, "additional_offset_DispatchProblem"=>string(additional_offset_DispatchProblem)) # save case name as attribute, and optional parameter to add additional offset for scheduling problem (only enabled for custom PRAS version that includes this as an option)
                     )
     end
