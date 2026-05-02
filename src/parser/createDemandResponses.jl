@@ -69,7 +69,17 @@ function createDemandResponses(der_input_file, demand_input_file, timeseries_fol
             elseif dr_info.tech[i] == "DSP"
                 dr_info.duration[i] =  DER_parameters["DSP_limit_energy_per_window"]["enabled"] ? DER_parameters["DSP_limit_energy_per_window"]["max_energy_per_window_per_capacity"] : 100
                 dr_info.payback_window[i] = DER_parameters["DSP_limit_energy_per_window"]["enabled"] ? DER_parameters["DSP_limit_energy_per_window"]["max_energy_time_window"] : 24
-                dr_info.energy_interest[i] = (DER_parameters["DSP_limit_energy_per_window"]["enabled"] && dr_info.name[i][end-1:end] == "RR") ? 0.0 : -1.0
+                if DER_parameters["DSP_limit_energy_per_window"]["enabled"]
+                    if (0 in DER_parameters["DSP_limit_energy_per_window"]["limits_on_price_bands"]) && dr_info.name[i][end-1:end] == "RR"
+                        dr_info.energy_interest[i] = 0.0 # "RR" price band is used with [0]
+                    elseif (dr_info.cost_red[i] in DER_parameters["DSP_limit_energy_per_window"]["limits_on_price_bands"])
+                        dr_info.energy_interest[i] = 0.0
+                    else
+                        dr_info.energy_interest[i] = -1.0
+                    end
+                else
+                    dr_info.energy_interest[i] = -1.0
+                end
             end
         end
 
