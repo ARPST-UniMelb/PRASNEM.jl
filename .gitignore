@@ -5,3 +5,4 @@ _personal scripts/**
 Manifest.toml
 .vscode/
 .DS_Store
+/plan/*
