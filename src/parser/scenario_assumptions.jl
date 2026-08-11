@@ -349,7 +349,7 @@ function get_hydro_parameters(;case="base")
         hydro_parameters = Dict{String, Any}()
         # Reservoirs sizes
         hydro_parameters["reservoir_discharge_time_units"] = Dict{String, Any}("GORDON" => 10000, "POAT110" => 20000, 
-                            "MURRAY1" => 2100, "UPPTUMUT" => 2100, "MCKAY1" => 300) # This is the amount of timesteps that the reservoir can discharge at full capacity. 
+                            "MURRAY1" => 2100, "UPPTUMUT" => 2100, "MCKAY1" => 130) # This is the amount of timesteps that the reservoir can discharge at full capacity. 
         hydro_parameters["reservoir_discharge_time_states"] = Dict{Int, Any}(3 => 200, 4 => 2000) # 3 - VIC, 4 - TAS
         hydro_parameters["reservoir_discharge_time_other"] = 200 # Default assumption for all other reservoirs
         hydro_parameters["reservoir_initial_soc_units"] = Dict{String, Any}("GORDON" => 0.4, "POAT110" => 0.3, 
