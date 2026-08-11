@@ -16,6 +16,12 @@ This repository contains:
 > [!CAUTION]
 > The current release is fully functional and has been extensively tested; however, bugs or other issues may still arise. We would greatly appreciate any feedback or bug reports submitted via https://github.com/ARPST-UniMelb/PRASNEM.jl/issues 
 
+> [!NOTE]
+> If you are using this or the related repositories for your work, please cite the final report of AR-PST Stage 5:
+> 
+> T. Kopka, M. Yasirroni, P. Apablaza, B. Moya, S. Mhanna, and P. Mancarella, “Resource Adequacy, Risk, and Resilience in Low-Carbon Energy System Planning: Methods, Tools, and Metrics,” Australian Research in Power Systems Transition (AR-PST), Jun. 2026. [Online]. Available: https://www.csiro.au/en/research/technology-space/energy/Electricity-transition/AR-PST/Stage-5
+
+
 ## Getting Started
 
 Clone the repository by executing the following function
