@@ -1,6 +1,6 @@
 name = "PRASNEM"
 uuid = "dd18fea1-acda-4cb9-9bf0-b27bbe00ccb1"
-version = "1.0.0"
+version = "0.1.0"
 authors = ["Tim Kopka <tkopka@student.unimelb.edu.au> and contributors"]
 
 [deps]
